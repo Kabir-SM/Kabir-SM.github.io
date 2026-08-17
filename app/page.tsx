@@ -273,34 +273,29 @@ export default function Home() {
               </div>
               <article className="profile-badge">
                 <div className="badge-topline">
-                  <span>FIELD NOTE / 2026</span>
+                  <span>ACCESS PROFILE / 2026</span>
                   <span className="badge-live"><i /> ACTIVE</span>
                 </div>
                 <div className="badge-portrait">
-                  <ParticleText
-                    text="KM"
-                    particleSize={2}
-                    density={3}
-                    color="#f4f5ee"
-                    highlightColor="#c9ff57"
-                    scatter={80}
-                    gatherDuration={1100}
-                    stagger={180}
-                    pointerRepel={30}
-                    repelRadius={90}
-                    idleDrift={0.6}
-                    trigger="hover"
-                    fontSize="clamp(5rem, 8vw, 7rem)"
-                    fontWeight={800}
-                    height="100%"
-                    glow
-                    className="badge-particle"
+                  {/* Static asset avoids an unnecessary runtime image service for this compact badge. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className="badge-photo"
+                    src="/kabir-marwaha-portrait.png"
+                    alt="Portrait of Kabir Marwaha"
+                    width="1254"
+                    height="1254"
                   />
+                  <span className="badge-photo-shade" aria-hidden="true" />
                   <span className="scan-line" aria-hidden="true" />
                   <span className="corner corner-one" aria-hidden="true" />
                   <span className="corner corner-two" aria-hidden="true" />
                   <span className="corner corner-three" aria-hidden="true" />
                   <span className="corner corner-four" aria-hidden="true" />
+                  <span className="badge-photo-meta" aria-hidden="true">
+                    <span>KM / NEW YORK</span>
+                    <span>VERIFIED PROFILE</span>
+                  </span>
                 </div>
                 <div className="badge-name">
                   <span>Kabir Singh</span>
