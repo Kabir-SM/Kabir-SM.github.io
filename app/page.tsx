@@ -208,7 +208,7 @@ export default function Home() {
             <div className="hero-copy">
               <div className="availability-pill">
                 <span className="status-dot" aria-hidden="true" />
-                CS + AI / WebGPU field online
+                CS + AI / particle field online
               </div>
               <p className="hero-kicker">Software engineering / automation / data</p>
               <h1 className="particle-heading hero-particle-heading">
@@ -236,7 +236,7 @@ export default function Home() {
                 automation, AI integration, and practical tools that make complex work feel
                 simple.
               </p>
-              <p className="hero-system-note">Pointer and scroll data are shaping the live field behind this page.</p>
+              <p className="hero-system-note">A quiet field of interactive particles moves behind the work without competing with it.</p>
               <div className="hero-actions">
                 <a className="button button-primary" href="#work">
                   Explore my work <span aria-hidden="true">↓</span>
