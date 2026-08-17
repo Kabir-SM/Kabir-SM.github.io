@@ -1,3 +1,5 @@
+import { KineticExperience } from "./KineticExperience";
+
 const experience = [
   {
     company: "Apple",
@@ -117,6 +119,7 @@ export default function Home() {
       </a>
 
       <div className="site-shell">
+        <KineticExperience />
         <div className="ambient ambient-one" aria-hidden="true" />
         <div className="ambient ambient-two" aria-hidden="true" />
         <div className="signal-grid" aria-hidden="true" />
@@ -142,7 +145,7 @@ export default function Home() {
             <div className="hero-copy">
               <div className="availability-pill">
                 <span className="status-dot" aria-hidden="true" />
-                CS + AI student in New York
+                CS + AI / WebGPU field online
               </div>
               <p className="hero-kicker">Software engineering / automation / data</p>
               <h1>
@@ -153,6 +156,7 @@ export default function Home() {
                 automation, AI integration, and practical tools that make complex work feel
                 simple.
               </p>
+              <p className="hero-system-note">Pointer and scroll data are shaping the live field behind this page.</p>
               <div className="hero-actions">
                 <a className="button button-primary" href="#work">
                   Explore my work <span aria-hidden="true">↓</span>

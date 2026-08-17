@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kabir Marwaha | Software Engineering & AI",
+  title: "Kabir Marwaha | Systems in Motion",
   description:
-    "Portfolio of Kabir Marwaha, a New York-based computer science and AI student building automation, data, and systems software.",
+    "An interactive WebGPU and WebGL portfolio for Kabir Marwaha, a New York-based computer science and AI student building automation, data, and systems software.",
 };
 
 export default function RootLayout({
