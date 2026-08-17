@@ -537,11 +537,11 @@ export default function Home() {
               where thoughtful technology can make a measurable difference.
             </p>
             <div className="contact-links">
-              <a href="mailto:Kabir_1_6@icloud.com">
-                <span>Email</span>
-                <strong>Kabir_1_6@icloud.com</strong>
+              <ContactTrigger className="contact-link-button">
+                <span>Message</span>
+                <strong>Start a conversation</strong>
                 <i aria-hidden="true">↗</i>
-              </a>
+              </ContactTrigger>
               <a href="tel:+19175133731">
                 <span>Phone</span>
                 <strong>(917) 513-3731</strong>
