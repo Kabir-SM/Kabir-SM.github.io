@@ -21,6 +21,7 @@ type ParticlesProps = {
   moveParticlesOnHover?: boolean;
   alphaParticles?: boolean;
   disableRotation?: boolean;
+  pixelRatio?: number | string;
 };
 
 export default function Particles({
@@ -32,6 +33,7 @@ export default function Particles({
   moveParticlesOnHover = true,
   alphaParticles = false,
   disableRotation = false,
+  pixelRatio = 1,
 }: ParticlesProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -64,7 +66,8 @@ export default function Particles({
 
     const resize = () => {
       const bounds = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const requestedRatio = Number(pixelRatio);
+      const dpr = Number.isFinite(requestedRatio) ? Math.min(2, Math.max(0.5, requestedRatio)) : 1;
       width = Math.max(1, bounds.width);
       height = Math.max(1, bounds.height);
       canvas.width = Math.floor(width * dpr);
@@ -146,7 +149,7 @@ export default function Particles({
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerleave", onPointerLeave);
     };
-  }, [alphaParticles, disableRotation, moveParticlesOnHover, particleBaseSize, particleColors, particleCount, particleSpread, speed]);
+  }, [alphaParticles, disableRotation, moveParticlesOnHover, particleBaseSize, particleColors, particleCount, particleSpread, pixelRatio, speed]);
 
   return <canvas ref={canvasRef} className="particles-canvas" aria-hidden="true" />;
 }

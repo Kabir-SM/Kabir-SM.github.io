@@ -2530,3 +2530,33 @@ summary {
     background: rgba(5, 6, 6, 0.46);
   }
 }
+
+/* Low-profile lanyard for the monochrome particle system */
+.lanyard {
+  top: -3.5rem;
+  width: 8px;
+  height: 220px;
+  border-color: rgba(243, 243, 243, 0.12);
+  background: repeating-linear-gradient(90deg, #202220 0 2px, #0a0b0a 2px 4px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  opacity: 0.48;
+  transform: translateX(-50%) rotate(-2deg);
+}
+
+.lanyard span {
+  bottom: -0.75rem;
+  width: 2.5rem;
+  height: 1.25rem;
+  border-width: 2px;
+  border-color: #464a45;
+  background: #161816;
+  opacity: 0.78;
+}
+
+@media (max-width: 760px) {
+  .lanyard {
+    top: -2.25rem;
+    height: 180px;
+    opacity: 0.38;
+  }
+}

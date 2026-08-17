@@ -5,7 +5,7 @@ import Particles from "./Particles";
 
 type AudioRig = { context: AudioContext; gain: GainNode; sources: AudioScheduledSourceNode[] };
 
-const PARTICLE_COLORS = ["#ffffff"];
+const PARTICLE_COLORS = ["#f3f3f3"];
 
 function createLofiLoop(context: AudioContext) {
   const bpm = 82;
@@ -155,13 +155,14 @@ export function KineticExperience() {
       <div className="particles-background" aria-hidden="true">
         <Particles
           particleColors={PARTICLE_COLORS}
-          particleCount={200}
+          particleCount={700}
           particleSpread={10}
-          speed={0.1}
-          particleBaseSize={100}
+          speed={0.2}
+          particleBaseSize={200}
           moveParticlesOnHover
           alphaParticles={false}
           disableRotation={false}
+          pixelRatio="1"
         />
       </div>
       <div ref={cursorRef} className="kinetic-cursor" aria-hidden="true"><span /></div>
