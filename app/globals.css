@@ -2099,3 +2099,289 @@ summary {
     animation: none;
   }
 }
+
+/* Contact conversation */
+.contact-trigger {
+  appearance: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.header-cta.contact-trigger {
+  background: transparent;
+}
+
+.header-cta.contact-trigger:hover,
+.header-cta.contact-trigger:focus-visible {
+  background: var(--acid);
+}
+
+.about-copy > .conversation-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.4rem;
+  padding: 0 0 0.3rem;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.about-copy > .conversation-trigger::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: 0;
+  height: 1px;
+  background: var(--acid);
+  transition: right 180ms ease;
+}
+
+.about-copy > .conversation-trigger:hover::after,
+.about-copy > .conversation-trigger:focus-visible::after {
+  right: 0;
+}
+
+.contact-dialog {
+  width: min(94vw, 850px);
+  max-width: none;
+  max-height: min(92svh, 860px);
+  padding: 0;
+  overflow: auto;
+  border: 1px solid rgba(201, 255, 87, 0.34);
+  border-radius: 1.25rem;
+  background: rgba(9, 11, 10, 0.96);
+  color: var(--ink);
+  box-shadow: 0 40px 130px rgba(0, 0, 0, 0.78), 0 0 80px rgba(112, 225, 241, 0.09);
+  backdrop-filter: blur(30px) saturate(130%);
+}
+
+.contact-dialog[open] {
+  animation: modal-enter 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.contact-dialog::backdrop {
+  background: rgba(2, 3, 3, 0.74);
+  backdrop-filter: blur(12px);
+}
+
+.contact-modal-shell {
+  position: relative;
+  padding: clamp(1.25rem, 4vw, 3rem);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(189, 168, 255, 0.15), transparent 34%),
+    radial-gradient(circle at 6% 95%, rgba(112, 225, 241, 0.1), transparent 34%);
+}
+
+.contact-modal-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.25;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(to bottom right, black, transparent 72%);
+}
+
+.contact-modal-topline,
+.contact-modal-heading,
+.contact-form {
+  position: relative;
+  z-index: 1;
+}
+
+.contact-modal-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  color: rgba(244, 245, 238, 0.52);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+}
+
+.contact-modal-close {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.035);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 1.35rem;
+  line-height: 1;
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.contact-modal-close:hover,
+.contact-modal-close:focus-visible {
+  background: var(--acid);
+  color: #090a09;
+  transform: rotate(8deg);
+}
+
+.contact-modal-heading {
+  max-width: 660px;
+  padding: 2rem 0 1.6rem;
+}
+
+.contact-modal-heading .eyebrow {
+  margin: 0 0 0.7rem;
+}
+
+.contact-modal-heading h2 {
+  margin: 0;
+  font-size: clamp(2.5rem, 6vw, 5.2rem);
+  font-weight: 600;
+  letter-spacing: -0.07em;
+  line-height: 0.94;
+}
+
+.contact-modal-heading > p:last-child {
+  max-width: 580px;
+  margin: 1rem 0 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.contact-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.contact-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.contact-form label {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.contact-form label > span {
+  color: rgba(244, 245, 238, 0.7);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.59rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.contact-form input,
+.contact-form select,
+.contact-form textarea {
+  width: 100%;
+  border: 1px solid rgba(244, 245, 238, 0.16);
+  border-radius: 0.55rem;
+  outline: none;
+  background: rgba(255,255,255,0.045);
+  color: var(--ink);
+  font: inherit;
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.contact-form input,
+.contact-form select {
+  min-height: 3.25rem;
+  padding: 0 0.9rem;
+}
+
+.contact-form textarea {
+  min-height: 8.5rem;
+  padding: 0.9rem;
+  resize: vertical;
+}
+
+.contact-form input::placeholder,
+.contact-form textarea::placeholder {
+  color: rgba(244, 245, 238, 0.3);
+}
+
+.contact-form input:focus,
+.contact-form select:focus,
+.contact-form textarea:focus {
+  border-color: rgba(201, 255, 87, 0.72);
+  background: rgba(201, 255, 87, 0.045);
+  box-shadow: 0 0 0 3px rgba(201, 255, 87, 0.08);
+}
+
+.contact-form select option {
+  background: #101210;
+  color: var(--ink);
+}
+
+.contact-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.contact-form-actions .button {
+  cursor: pointer;
+}
+
+.contact-form-note,
+.contact-form-status {
+  margin: 0;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.contact-form-note {
+  color: rgba(244, 245, 238, 0.38);
+}
+
+.contact-form-status {
+  min-height: 1.5em;
+  color: var(--acid);
+}
+
+@keyframes modal-enter {
+  from { opacity: 0; transform: translateY(24px) scale(0.975); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 640px) {
+  .contact-dialog {
+    width: calc(100vw - 1rem);
+    max-height: calc(100svh - 1rem);
+    border-radius: 0.9rem;
+  }
+
+  .contact-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-form-actions {
+    display: grid;
+  }
+
+  .contact-form-actions .button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-dialog[open] {
+    animation: none;
+  }
+}

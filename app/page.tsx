@@ -1,5 +1,6 @@
 import { KineticExperience } from "./KineticExperience";
 import ParticleText from "./ParticleText";
+import { ContactModal, ContactTrigger } from "./ContactModal";
 
 const experience = [
   {
@@ -197,9 +198,9 @@ export default function Home() {
             <a href="#about">About</a>
             <a href="#contact">Contact</a>
           </nav>
-          <a className="header-cta" href="mailto:Kabir_1_6@icloud.com">
+          <ContactTrigger className="header-cta">
             Let&apos;s talk <span aria-hidden="true">↗</span>
-          </a>
+          </ContactTrigger>
         </header>
 
         <main id="main-content">
@@ -468,9 +469,9 @@ export default function Home() {
                   reporting across three business locations, I&apos;ve learned to ask the same
                   question: what would make this easier, clearer, and more reliable?
                 </p>
-                <a href="mailto:Kabir_1_6@icloud.com">
+                <ContactTrigger className="conversation-trigger">
                   Start a conversation <span aria-hidden="true">↗</span>
-                </a>
+                </ContactTrigger>
               </div>
             </div>
 
@@ -564,6 +565,7 @@ export default function Home() {
           <p>Built around useful work. © {new Date().getFullYear()}</p>
           <a href="#top">Back to top ↑</a>
         </footer>
+        <ContactModal />
       </div>
     </>
   );

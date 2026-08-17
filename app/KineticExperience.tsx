@@ -330,28 +330,33 @@ export function KineticExperience() {
     if (audioRef.current) {
       const rig = audioRef.current; const now = rig.context.currentTime;
       rig.gain.gain.cancelScheduledValues(now); rig.gain.gain.setValueAtTime(rig.gain.gain.value, now);
-      rig.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
-      rig.sources.forEach((source) => { try { source.stop(now + 0.4); } catch { /* already stopped */ } });
-      audioRef.current = null; setSoundOn(false); window.setTimeout(() => void rig.context.close(), 450); return;
+      rig.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
+      rig.sources.forEach((source) => { try { source.stop(now + 0.85); } catch { /* already stopped */ } });
+      audioRef.current = null; setSoundOn(false); window.setTimeout(() => void rig.context.close(), 900); return;
     }
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const context: AudioContext = new AudioContextClass(); await context.resume();
-    const master = context.createGain(); const filter = context.createBiquadFilter();
-    master.gain.setValueAtTime(0.0001, context.currentTime); master.gain.exponentialRampToValueAtTime(0.085, context.currentTime + 1.4);
-    filter.type = "lowpass"; filter.frequency.value = 620; filter.Q.value = 1.1; filter.connect(master); master.connect(context.destination);
+    const master = context.createGain(); const filter = context.createBiquadFilter(); const compressor = context.createDynamicsCompressor();
+    master.gain.setValueAtTime(0.0001, context.currentTime); master.gain.exponentialRampToValueAtTime(0.15, context.currentTime + 2.2);
+    filter.type = "lowpass"; filter.frequency.value = 780; filter.Q.value = 0.58;
+    compressor.threshold.value = -24; compressor.knee.value = 26; compressor.ratio.value = 3; compressor.attack.value = 0.025; compressor.release.value = 0.9;
+    filter.connect(master); master.connect(compressor); compressor.connect(context.destination);
     const sources: AudioScheduledSourceNode[] = [];
-    [{ frequency: 55, type: "sine" as OscillatorType, gain: 0.28 }, { frequency: 82.41, type: "triangle" as OscillatorType, gain: 0.1 }, { frequency: 110, type: "sine" as OscillatorType, gain: 0.055 }].forEach((voice, index) => {
+    [{ frequency: 55, type: "sine" as OscillatorType, gain: 0.32 }, { frequency: 82.41, type: "sine" as OscillatorType, gain: 0.16 }, { frequency: 110, type: "sine" as OscillatorType, gain: 0.07 }, { frequency: 164.81, type: "sine" as OscillatorType, gain: 0.032 }].forEach((voice, index) => {
       const oscillator = context.createOscillator(); const voiceGain = context.createGain();
       oscillator.type = voice.type; oscillator.frequency.value = voice.frequency; oscillator.detune.value = index * 3 - 2; voiceGain.gain.value = voice.gain;
       oscillator.connect(voiceGain); voiceGain.connect(filter); oscillator.start(); sources.push(oscillator);
     });
     const lfo = context.createOscillator(); const lfoGain = context.createGain();
-    lfo.frequency.value = 0.075; lfoGain.gain.value = 220; lfo.connect(lfoGain); lfoGain.connect(filter.frequency); lfo.start(); sources.push(lfo);
-    const noiseBuffer = context.createBuffer(1, context.sampleRate * 3, context.sampleRate); const noiseData = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < noiseData.length; i += 1) noiseData[i] = (Math.random() * 2 - 1) * (1 - i / noiseData.length);
+    lfo.frequency.value = 0.045; lfoGain.gain.value = 135; lfo.connect(lfoGain); lfoGain.connect(filter.frequency); lfo.start(); sources.push(lfo);
+    const breath = context.createOscillator(); const breathGain = context.createGain();
+    breath.frequency.value = 0.032; breathGain.gain.value = 0.012; breath.connect(breathGain); breathGain.connect(master.gain); breath.start(); sources.push(breath);
+    const noiseBuffer = context.createBuffer(1, context.sampleRate * 4, context.sampleRate); const noiseData = noiseBuffer.getChannelData(0);
+    let smoothedNoise = 0;
+    for (let i = 0; i < noiseData.length; i += 1) { smoothedNoise = smoothedNoise * 0.985 + (Math.random() * 2 - 1) * 0.015; noiseData[i] = smoothedNoise * 2.4; }
     const noise = context.createBufferSource(); const noiseGain = context.createGain();
-    noise.buffer = noiseBuffer; noise.loop = true; noiseGain.gain.value = 0.024; noise.connect(noiseGain); noiseGain.connect(filter); noise.start(); sources.push(noise);
+    noise.buffer = noiseBuffer; noise.loop = true; noiseGain.gain.value = 0.017; noise.connect(noiseGain); noiseGain.connect(filter); noise.start(); sources.push(noise);
     audioRef.current = { context, gain: master, sources }; setSoundOn(true);
   };
 
@@ -360,7 +365,7 @@ export function KineticExperience() {
       <canvas ref={canvasRef} className="experience-canvas" aria-hidden="true" />
       <div ref={cursorRef} className="kinetic-cursor" aria-hidden="true"><span /></div>
       <div className="renderer-badge" aria-label={`Visual renderer: ${renderer}`}><span className="renderer-dot" />{renderer}</div>
-      <button className={`sound-toggle ${soundOn ? "is-on" : ""}`} type="button" aria-pressed={soundOn} onClick={() => void toggleSound()}>
+      <button className={`sound-toggle ${soundOn ? "is-on" : ""}`} type="button" aria-label={soundOn ? "Turn ambient sound off" : "Turn ambient sound on"} aria-pressed={soundOn} onClick={() => void toggleSound()}>
         <span className="sound-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>SOUND: {soundOn ? "ON" : "OFF"}</span>
       </button>
       <div className="experience-progress" aria-hidden="true">
