@@ -1065,28 +1065,18 @@ summary {
   border-top: 1px solid var(--line);
 }
 
-.contact-links a,
-.contact-links .contact-link-button {
+.contact-links a {
   display: grid;
   grid-template-columns: 0.3fr 1fr auto;
   gap: 2rem;
   align-items: center;
-  width: 100%;
   padding: 1.6rem 0;
-  border: 0;
   border-bottom: 1px solid var(--line);
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
   transition: padding 180ms ease, color 180ms ease;
 }
 
 .contact-links a:hover,
-.contact-links a:focus-visible,
-.contact-links .contact-link-button:hover,
-.contact-links .contact-link-button:focus-visible {
+.contact-links a:focus-visible {
   padding-left: 1rem;
   padding-right: 1rem;
   color: var(--acid);
@@ -1248,8 +1238,7 @@ summary {
   .skill-groups { grid-template-columns: 1fr; }
   .skill-groups article { min-height: 220px; }
 
-  .contact-links a,
-  .contact-links .contact-link-button {
+  .contact-links a {
     grid-template-columns: 1fr auto;
     gap: 0.4rem 1rem;
   }

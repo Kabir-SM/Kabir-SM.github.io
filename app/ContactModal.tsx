@@ -68,6 +68,15 @@ export function ContactModal() {
     window.location.assign(gmailUrl);
   };
 
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(CONTACT_EMAIL);
+      setStatus(`${CONTACT_EMAIL} copied to your clipboard.`);
+    } catch {
+      setStatus(`Email Kabir directly at ${CONTACT_EMAIL}.`);
+    }
+  };
+
   return (
     <dialog
       ref={dialogRef}
@@ -83,7 +92,7 @@ export function ContactModal() {
         <div className="contact-modal-heading">
           <p className="eyebrow">Start a conversation</p>
           <h2 id="contact-dialog-title">Tell me what you&apos;re building.</h2>
-          <p>Share a few details and I&apos;ll turn them into a ready-to-send Gmail draft addressed directly to Kabir.</p>
+          <p>Share a few details and I&apos;ll turn them into a ready-to-send email addressed directly to Kabir.</p>
         </div>
         <form className="contact-form" onSubmit={prepareEmail}>
           <div className="contact-form-grid">
@@ -119,6 +128,7 @@ export function ContactModal() {
           </label>
           <div className="contact-form-actions">
             <button className="button button-primary" type="submit">Open Gmail <span aria-hidden="true">↗</span></button>
+            <button className="button button-secondary" type="button" onClick={() => void copyEmail()}>Copy Kabir&apos;s email</button>
           </div>
           <p className="contact-form-note">Nothing is uploaded or stored. Gmail handles delivery after you press Send.</p>
           <p className="contact-form-status" role="status" aria-live="polite">{status}</p>
