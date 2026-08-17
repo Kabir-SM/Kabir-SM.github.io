@@ -75,10 +75,11 @@ export default function ParticleText({
     let frame = 0;
     let visible = true;
     let hovered = false;
-    let blast = trigger === "always" ? 0.8 : 0;
+    let localPulse = 0;
     let lastTime = performance.now();
     let bornAt = lastTime;
     const pointer = { x: -10000, y: -10000, active: false };
+    const pulseOrigin = { x: -10000, y: -10000 };
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const buildParticles = () => {
@@ -130,9 +131,10 @@ export default function ParticleText({
         const seed = pseudoRandom(index + text.length * 17);
         const angle = seed * Math.PI * 2;
         const distance = scatter * (0.35 + pseudoRandom(index * 2.17 + 4) * 0.65);
+        const startsScattered = trigger === "always";
         return {
-          x: point.x + Math.cos(angle) * distance,
-          y: point.y + Math.sin(angle) * distance,
+          x: startsScattered ? point.x + Math.cos(angle) * distance : point.x,
+          y: startsScattered ? point.y + Math.sin(angle) * distance : point.y,
           tx: point.x,
           ty: point.y,
           vx: 0,
@@ -155,7 +157,6 @@ export default function ParticleText({
     const onPointerEnter = (event: PointerEvent) => {
       hovered = true;
       updatePointer(event);
-      if (trigger === "hover") blast = 1;
     };
     const onPointerMove = (event: PointerEvent) => updatePointer(event);
     const onPointerLeave = () => {
@@ -164,7 +165,9 @@ export default function ParticleText({
     };
     const onPointerDown = (event: PointerEvent) => {
       updatePointer(event);
-      if (trigger === "click" || trigger === "hover") blast = 1;
+      pulseOrigin.x = pointer.x;
+      pulseOrigin.y = pointer.y;
+      localPulse = 1;
     };
 
     const draw = (now: number) => {
@@ -174,26 +177,38 @@ export default function ParticleText({
         const rect = host.getBoundingClientRect();
         context.clearRect(0, 0, rect.width, rect.height);
         const elapsed = now - bornAt;
-        blast = Math.max(0, blast - delta / Math.max(300, gatherDuration));
+        localPulse = Math.max(0, localPulse - delta / Math.max(300, gatherDuration * 0.65));
         const basePoints: Particle[] = [];
         const brightPoints: Particle[] = [];
 
-        particles.forEach((particle, index) => {
+        particles.forEach((particle) => {
           if (!reduceMotion) {
             const reveal = Math.min(1, Math.max(0, (elapsed - particle.delay) / Math.max(1, gatherDuration)));
-            const eased = 1 - Math.pow(1 - reveal, 3);
+            const eased = trigger === "always" ? 1 - Math.pow(1 - reveal, 3) : 1;
             const driftX = Math.sin(now * 0.00045 + particle.seed * 18) * idleDrift;
             const driftY = Math.cos(now * 0.00038 + particle.seed * 21) * idleDrift;
-            const burstDistance = blast * scatter * (0.25 + particle.seed * 0.75);
-            let targetX = particle.tx + driftX + Math.cos(particle.angle) * burstDistance;
-            let targetY = particle.ty + driftY + Math.sin(particle.angle) * burstDistance;
+            let targetX = particle.tx + driftX;
+            let targetY = particle.ty + driftY;
+
+            if (localPulse > 0) {
+              const pulseDx = particle.tx - pulseOrigin.x;
+              const pulseDy = particle.ty - pulseOrigin.y;
+              const pulseDistance = Math.max(1, Math.hypot(pulseDx, pulseDy));
+              const pulseRadius = repelRadius * 1.35;
+              if (pulseDistance < pulseRadius) {
+                const falloff = Math.pow(1 - pulseDistance / pulseRadius, 2);
+                const force = localPulse * scatter * 0.22 * falloff;
+                targetX += (pulseDx / pulseDistance) * force;
+                targetY += (pulseDy / pulseDistance) * force;
+              }
+            }
 
             if (pointer.active && hovered) {
-              const dx = particle.x - pointer.x;
-              const dy = particle.y - pointer.y;
+              const dx = particle.tx - pointer.x;
+              const dy = particle.ty - pointer.y;
               const distance = Math.max(1, Math.hypot(dx, dy));
               if (distance < repelRadius) {
-                const force = (1 - distance / repelRadius) * pointerRepel;
+                const force = Math.pow(1 - distance / repelRadius, 2) * pointerRepel;
                 targetX += (dx / distance) * force;
                 targetY += (dy / distance) * force;
               }
@@ -210,7 +225,8 @@ export default function ParticleText({
           }
 
           const pointerDistance = pointer.active ? Math.hypot(particle.x - pointer.x, particle.y - pointer.y) : Number.POSITIVE_INFINITY;
-          if (pointerDistance < repelRadius * 1.2 || (blast > 0.04 && pseudoRandom(index * 8.1) > 0.72)) brightPoints.push(particle);
+          const pulseDistance = Math.hypot(particle.tx - pulseOrigin.x, particle.ty - pulseOrigin.y);
+          if (pointerDistance < repelRadius * 1.05 || (localPulse > 0.04 && pulseDistance < repelRadius * 1.35)) brightPoints.push(particle);
           else basePoints.push(particle);
         });
 
