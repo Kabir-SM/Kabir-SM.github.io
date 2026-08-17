@@ -1,4 +1,5 @@
 import { KineticExperience } from "./KineticExperience";
+import ParticleText from "./ParticleText";
 
 const experience = [
   {
@@ -49,6 +50,7 @@ const projects = [
     impact: "Replaced a repetitive multi-system process with one connected workflow.",
     tags: ["Python", "Excel", "Gmail", "Podium", "IClassPro"],
     accent: "cyan",
+    visual: "workflow",
   },
   {
     index: "02",
@@ -59,6 +61,7 @@ const projects = [
     impact: "Improved student database workflows by approximately 40%.",
     tags: ["Java", "JavaFX", "JDBC", "PostgreSQL", "MySQL", "Oracle"],
     accent: "lime",
+    visual: "database",
   },
   {
     index: "03",
@@ -69,6 +72,7 @@ const projects = [
     impact: "Made reporting easier to access, understand, and act on.",
     tags: ["Data analysis", "Reporting", "AI / LLM", "Process design"],
     accent: "violet",
+    visual: "dashboard",
   },
   {
     index: "04",
@@ -79,6 +83,7 @@ const projects = [
     impact: "Supported data accuracy, lifecycle visibility, and field deployment.",
     tags: ["RFID", "Inventory systems", "Testing", "Healthcare tech"],
     accent: "orange",
+    visual: "rfid",
   },
 ];
 
@@ -110,6 +115,63 @@ const coursework = [
   "Artificial Intelligence",
   "Software Engineering",
 ];
+
+function ProjectVisual({ visual }: { visual: (typeof projects)[number]["visual"] }) {
+  if (visual === "workflow") {
+    return (
+      <div className="visual-system workflow-system" aria-hidden="true">
+        <div className="flow-node"><span>01</span><strong>ICLASSPRO</strong></div>
+        <i className="flow-link" />
+        <div className="flow-node is-core"><span>02</span><strong>PYTHON</strong></div>
+        <i className="flow-link" />
+        <div className="flow-output">
+          <span>EXCEL</span><span>GMAIL</span><span>PODIUM</span>
+        </div>
+        <p>AUTOMATED DATA ROUTE / 3 LOCATIONS</p>
+      </div>
+    );
+  }
+
+  if (visual === "database") {
+    return (
+      <div className="visual-system database-system" aria-hidden="true">
+        <div className="database-sources">
+          <span><i>PG</i>POSTGRES</span>
+          <span><i>MY</i>MYSQL</span>
+          <span><i>OR</i>ORACLE</span>
+        </div>
+        <div className="database-bus"><span /><span /><span /></div>
+        <div className="database-console"><b>POLYDB</b><em>ONE INTERFACE / THREE ENGINES</em></div>
+      </div>
+    );
+  }
+
+  if (visual === "dashboard") {
+    return (
+      <div className="visual-system dashboard-system" aria-hidden="true">
+        <div className="dash-header"><span>OPERATIONS / LIVE</span><i>SYNCED</i></div>
+        <div className="dash-panels">
+          <div className="dash-stat"><span>03</span><small>LOCATIONS</small></div>
+          <div className="dash-bars"><i /><i /><i /><i /><i /><i /></div>
+          <div className="dash-signal"><span>AI</span><b>INSIGHT QUEUE</b><em>12 READY</em></div>
+        </div>
+        <div className="dash-timeline"><i /><i /><i /><i /></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="visual-system rfid-system" aria-hidden="true">
+      <div className="rfid-reader"><span>RFID</span><b>LIVE READER</b><i /></div>
+      <div className="asset-grid">
+        {["A-17", "B-04", "C-12", "D-09", "E-21", "F-02"].map((asset, assetIndex) => (
+          <span className={assetIndex === 2 || assetIndex === 4 ? "is-detected" : ""} key={asset}>{asset}</span>
+        ))}
+      </div>
+      <p>ASSET POSITION / VERIFIED</p>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
@@ -148,8 +210,25 @@ export default function Home() {
                 CS + AI / WebGPU field online
               </div>
               <p className="hero-kicker">Software engineering / automation / data</p>
-              <h1>
-                I build systems that turn manual work into <em>momentum.</em>
+              <h1 className="particle-heading hero-particle-heading">
+                <ParticleText
+                  text={"MANUAL WORK\nINTO MOMENTUM."}
+                  particleSize={2}
+                  density={4}
+                  color="#f4f5ee"
+                  highlightColor="#c9ff57"
+                  scatter={180}
+                  gatherDuration={1600}
+                  stagger={420}
+                  pointerRepel={44}
+                  repelRadius={125}
+                  idleDrift={0.75}
+                  trigger="hover"
+                  fontSize="clamp(3.25rem, 7.25vw, 8.3rem)"
+                  fontWeight={800}
+                  height="clamp(17rem, 31vw, 28rem)"
+                  glow
+                />
               </h1>
               <p className="hero-intro">
                 I&apos;m Kabir, a computer science student and software engineer focused on
@@ -197,7 +276,25 @@ export default function Home() {
                   <span className="badge-live"><i /> ACTIVE</span>
                 </div>
                 <div className="badge-portrait">
-                  <span className="initials">KM</span>
+                  <ParticleText
+                    text="KM"
+                    particleSize={2}
+                    density={3}
+                    color="#f4f5ee"
+                    highlightColor="#c9ff57"
+                    scatter={80}
+                    gatherDuration={1100}
+                    stagger={180}
+                    pointerRepel={30}
+                    repelRadius={90}
+                    idleDrift={0.6}
+                    trigger="hover"
+                    fontSize="clamp(5rem, 8vw, 7rem)"
+                    fontWeight={800}
+                    height="100%"
+                    glow
+                    className="badge-particle"
+                  />
                   <span className="scan-line" aria-hidden="true" />
                   <span className="corner corner-one" aria-hidden="true" />
                   <span className="corner corner-two" aria-hidden="true" />
@@ -240,7 +337,26 @@ export default function Home() {
             <div className="section-heading">
               <div>
                 <p className="eyebrow">Selected work</p>
-                <h2>Built for the real world.</h2>
+                <h2 className="particle-heading section-particle-heading">
+                  <ParticleText
+                    text={"BUILT FOR\nTHE REAL WORLD."}
+                    particleSize={1.7}
+                    density={4}
+                    color="#f4f5ee"
+                    highlightColor="#70e1f1"
+                    scatter={110}
+                    gatherDuration={1350}
+                    stagger={260}
+                    pointerRepel={34}
+                    repelRadius={100}
+                    idleDrift={0.55}
+                    trigger="hover"
+                    fontSize="clamp(2.8rem, 5.8vw, 6rem)"
+                    fontWeight={780}
+                    height="clamp(10rem, 18vw, 15rem)"
+                    glow
+                  />
+                </h2>
               </div>
               <p>
                 Practical systems across automation, data, databases, and hardware - designed
@@ -252,10 +368,8 @@ export default function Home() {
               {projects.map((project) => (
                 <article className={`project-card accent-${project.accent}`} key={project.title}>
                   <div className="project-number">{project.index}</div>
-                  <div className="project-visual" aria-hidden="true">
-                    <span className="orbit orbit-one" />
-                    <span className="orbit orbit-two" />
-                    <span className="core-dot" />
+                  <div className="project-visual">
+                    <ProjectVisual visual={project.visual} />
                     <span className="visual-label">{project.index} / KM</span>
                   </div>
                   <p className="project-kicker">{project.kicker}</p>
@@ -277,7 +391,26 @@ export default function Home() {
             <div className="section-heading">
               <div>
                 <p className="eyebrow">Experience</p>
-                <h2>Across people, products, and systems.</h2>
+                <h2 className="particle-heading section-particle-heading wide-particle-heading">
+                  <ParticleText
+                    text={"PEOPLE / PRODUCTS\n/ SYSTEMS"}
+                    particleSize={1.7}
+                    density={4}
+                    color="#f4f5ee"
+                    highlightColor="#bda8ff"
+                    scatter={105}
+                    gatherDuration={1350}
+                    stagger={240}
+                    pointerRepel={32}
+                    repelRadius={95}
+                    idleDrift={0.5}
+                    trigger="hover"
+                    fontSize="clamp(2.55rem, 5.1vw, 5.6rem)"
+                    fontWeight={760}
+                    height="clamp(9rem, 16vw, 13.5rem)"
+                    glow
+                  />
+                </h2>
               </div>
               <span className="section-count">04 roles / 2025-2026</span>
             </div>
@@ -379,7 +512,26 @@ export default function Home() {
 
           <section className="contact-section" id="contact">
             <p className="eyebrow">Contact / New York</p>
-            <h2>Have a system worth improving?</h2>
+            <h2 className="particle-heading contact-particle-heading">
+              <ParticleText
+                text={"LET'S BUILD\nSOMETHING USEFUL."}
+                particleSize={1.8}
+                density={4}
+                color="#f4f5ee"
+                highlightColor="#c9ff57"
+                scatter={125}
+                gatherDuration={1450}
+                stagger={300}
+                pointerRepel={38}
+                repelRadius={110}
+                idleDrift={0.65}
+                trigger="hover"
+                fontSize="clamp(3rem, 7vw, 7.4rem)"
+                fontWeight={790}
+                height="clamp(13rem, 25vw, 22rem)"
+                glow
+              />
+            </h2>
             <p className="contact-intro">
               I&apos;m interested in software engineering, automation, data, and AI opportunities
               where thoughtful technology can make a measurable difference.

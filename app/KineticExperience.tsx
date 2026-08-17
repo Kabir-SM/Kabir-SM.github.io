@@ -4,10 +4,45 @@ import { useEffect, useRef, useState } from "react";
 
 type RendererMode = "WebGPU" | "WebGL2" | "Static";
 
+type GPUCanvasContextLike = {
+  configure: (options: { device: GPUDeviceLike; format: string; alphaMode: string }) => void;
+  getCurrentTexture: () => { createView: () => unknown };
+};
+
+type GPURenderPipelineLike = {
+  getBindGroupLayout: (index: number) => unknown;
+};
+
+type GPUDeviceLike = {
+  createShaderModule: (options: { code: string }) => unknown;
+  createRenderPipelineAsync: (options: unknown) => Promise<GPURenderPipelineLike>;
+  createBuffer: (options: { size: number; usage: number }) => unknown;
+  createBindGroup: (options: unknown) => unknown;
+  createCommandEncoder: () => {
+    beginRenderPass: (options: unknown) => {
+      setPipeline: (pipeline: GPURenderPipelineLike) => void;
+      setBindGroup: (index: number, bindGroup: unknown) => void;
+      draw: (vertexCount: number) => void;
+      end: () => void;
+    };
+    finish: () => unknown;
+  };
+  queue: {
+    writeBuffer: (buffer: unknown, offset: number, data: Float32Array<ArrayBuffer>) => void;
+    submit: (commands: unknown[]) => void;
+  };
+};
+
+type GPULike = {
+  requestAdapter: (options: { powerPreference: string }) => Promise<{ requestDevice: () => Promise<GPUDeviceLike> } | null>;
+  getPreferredCanvasFormat: () => string;
+};
+
 const webgpuShader = /* wgsl */ `
 struct Uniforms {
   resolution: vec2f,
   pointer: vec2f,
+  click: vec2f,
   time: f32,
   scroll: f32,
   energy: f32,
@@ -52,23 +87,29 @@ fn fbm(start: vec2f) -> f32 {
   let field = fbm(q * 2.35 + vec2f(t * 0.7, -t * 0.22));
   let ridge = 1.0 - abs(field * 2.0 - 1.0);
   let lime = vec3f(0.63, 1.0, 0.24);
-  let cyan = vec3f(0.2, 0.84, 0.96);
-  let violet = vec3f(0.58, 0.34, 1.0);
-  let stage = 0.5 + 0.5 * sin(u.scroll * 6.28318);
-  let accent = mix(mix(cyan, lime, stage), violet, smoothstep(0.58, 1.0, u.scroll));
+  let cyan = vec3f(0.08, 0.78, 1.0);
+  let violet = vec3f(0.58, 0.24, 1.0);
+  let coral = vec3f(1.0, 0.25, 0.38);
+  let colorCycle = u.scroll * 4.5 + u.time * 0.055;
+  let stage = 0.5 + 0.5 * sin(colorCycle * 2.1);
+  let accent = mix(mix(cyan, lime, stage), mix(violet, coral, stage), smoothstep(0.28, 0.9, u.scroll));
+  let accentTwo = mix(violet, cyan, 0.5 + 0.5 * cos(colorCycle));
   let orbA = vec2f(sin(t * 1.4) * 0.42, cos(t * 0.88) * 0.24);
   let orbB = vec2f(cos(t * 0.72 + 2.1) * 0.6, sin(t * 1.2) * 0.3);
   let glowA = exp(-4.6 * length(q - orbA));
   let glowB = exp(-5.8 * length(q - orbB));
   let network = pow(smoothstep(0.54, 0.86, ridge), 3.0);
-  var color = vec3f(0.006, 0.008, 0.007);
-  color = color + network * accent * (0.22 + glowA * 0.62);
-  color = color + glowA * accent * 0.22;
-  color = color + glowB * mix(violet, cyan, stage) * 0.16;
-  let pointerPosition = vec2f(u.pointer.x * 0.78, -u.pointer.y * 0.5);
-  let pointerDistance = length(p - pointerPosition);
-  let pointerRing = exp(-75.0 * abs(pointerDistance - (0.12 + u.energy * 0.28)));
-  color = color + pointerRing * accent * u.energy * 0.55;
+  var color = vec3f(0.004, 0.005, 0.008);
+  let wash = 0.5 + 0.5 * sin(field * 4.4 + colorCycle);
+  color = color + accent * (0.018 + wash * 0.052) + accentTwo * (1.0 - wash) * 0.028;
+  color = color + network * accent * (0.3 + glowA * 0.74);
+  color = color + glowA * accent * 0.29;
+  color = color + glowB * accentTwo * 0.24;
+  let aspect = safeResolution.x / safeResolution.y;
+  let clickPosition = vec2f(u.click.x * aspect, u.click.y);
+  let clickDistance = length(p - clickPosition);
+  let pointerRing = exp(-90.0 * abs(clickDistance - (0.035 + (1.0 - u.energy) * 0.58)));
+  color = color + pointerRing * accent * u.energy * 0.82;
   let gridX = smoothstep(0.985, 1.0, cos((q.x + field * 0.04) * 78.0));
   let gridY = smoothstep(0.992, 1.0, cos((q.y - field * 0.04) * 78.0));
   color = color + (gridX + gridY) * accent * 0.018;
@@ -87,6 +128,7 @@ const webglFragment = /* glsl */ `#version 300 es
 precision highp float;
 uniform vec2 uResolution;
 uniform vec2 uPointer;
+uniform vec2 uClick;
 uniform float uTime;
 uniform float uScroll;
 uniform float uEnergy;
@@ -111,20 +153,25 @@ void main() {
   vec2 q = p + 0.34 * vec2(warpA - 0.5, warpB - 0.5);
   float field = fbm(q * 2.35 + vec2(t * 0.7, -t * 0.22));
   float ridge = 1.0 - abs(field * 2.0 - 1.0);
-  vec3 lime = vec3(0.63, 1.0, 0.24), cyan = vec3(0.2, 0.84, 0.96), violet = vec3(0.58, 0.34, 1.0);
-  float stage = 0.5 + 0.5 * sin(uScroll * 6.28318);
-  vec3 accent = mix(mix(cyan, lime, stage), violet, smoothstep(0.58, 1.0, uScroll));
+  vec3 lime = vec3(0.63, 1.0, 0.24), cyan = vec3(0.08, 0.78, 1.0), violet = vec3(0.58, 0.24, 1.0), coral = vec3(1.0, 0.25, 0.38);
+  float colorCycle = uScroll * 4.5 + uTime * 0.055;
+  float stage = 0.5 + 0.5 * sin(colorCycle * 2.1);
+  vec3 accent = mix(mix(cyan, lime, stage), mix(violet, coral, stage), smoothstep(0.28, 0.9, uScroll));
+  vec3 accentTwo = mix(violet, cyan, 0.5 + 0.5 * cos(colorCycle));
   vec2 orbA = vec2(sin(t * 1.4) * 0.42, cos(t * 0.88) * 0.24);
   vec2 orbB = vec2(cos(t * 0.72 + 2.1) * 0.6, sin(t * 1.2) * 0.3);
   float glowA = exp(-4.6 * length(q - orbA));
   float glowB = exp(-5.8 * length(q - orbB));
   float network = pow(smoothstep(0.54, 0.86, ridge), 3.0);
-  vec3 color = vec3(0.006, 0.008, 0.007);
-  color += network * accent * (0.22 + glowA * 0.62) + glowA * accent * 0.22 + glowB * mix(violet, cyan, stage) * 0.16;
-  vec2 pointerPosition = vec2(uPointer.x * 0.78, uPointer.y * 0.5);
-  float pointerDistance = length(p - pointerPosition);
-  float pointerRing = exp(-75.0 * abs(pointerDistance - (0.12 + uEnergy * 0.28)));
-  color += pointerRing * accent * uEnergy * 0.55;
+  vec3 color = vec3(0.004, 0.005, 0.008);
+  float wash = 0.5 + 0.5 * sin(field * 4.4 + colorCycle);
+  color += accent * (0.018 + wash * 0.052) + accentTwo * (1.0 - wash) * 0.028;
+  color += network * accent * (0.3 + glowA * 0.74) + glowA * accent * 0.29 + glowB * accentTwo * 0.24;
+  float aspect = safeResolution.x / safeResolution.y;
+  vec2 clickPosition = vec2(uClick.x * aspect, -uClick.y);
+  float clickDistance = length(p - clickPosition);
+  float pointerRing = exp(-90.0 * abs(clickDistance - (0.035 + (1.0 - uEnergy) * 0.58)));
+  color += pointerRing * accent * uEnergy * 0.82;
   float gridX = smoothstep(0.985, 1.0, cos((q.x + field * 0.04) * 78.0));
   float gridY = smoothstep(0.992, 1.0, cos((q.y - field * 0.04) * 78.0));
   color += (gridX + gridY) * accent * 0.018;
@@ -154,6 +201,7 @@ export function KineticExperience() {
     let renderFrame: ((time: number, scroll: number, energy: number) => void) | null = null;
     const pointerTarget = { x: 0, y: 0 };
     const pointer = { x: 0, y: 0 };
+    const clickPoint = { x: 0, y: 0 };
     let scrollTarget = 0;
     let scrollValue = 0;
     let energy = 0;
@@ -189,6 +237,7 @@ export function KineticExperience() {
       gl.enableVertexAttribArray(position); gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
       const resolutionLocation = gl.getUniformLocation(program, "uResolution");
       const pointerLocation = gl.getUniformLocation(program, "uPointer");
+      const clickLocation = gl.getUniformLocation(program, "uClick");
       const timeLocation = gl.getUniformLocation(program, "uTime");
       const scrollLocation = gl.getUniformLocation(program, "uScroll");
       const energyLocation = gl.getUniformLocation(program, "uEnergy");
@@ -197,27 +246,28 @@ export function KineticExperience() {
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
         gl.uniform2f(pointerLocation, pointer.x, pointer.y);
+        gl.uniform2f(clickLocation, clickPoint.x, clickPoint.y);
         gl.uniform1f(timeLocation, time); gl.uniform1f(scrollLocation, scroll); gl.uniform1f(energyLocation, currentEnergy);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       };
       setRenderer("WebGL2");
     };
     const startWebGPU = async () => {
-      const gpu = (navigator as Navigator & { gpu?: any }).gpu;
+      const gpu = (navigator as Navigator & { gpu?: GPULike }).gpu;
       if (!gpu) throw new Error("WebGPU unavailable");
       const adapter = await gpu.requestAdapter({ powerPreference: "high-performance" });
       if (!adapter) throw new Error("No WebGPU adapter");
       const device = await adapter.requestDevice();
-      const context = (canvas as any).getContext("webgpu");
+      const context = (canvas as unknown as { getContext: (type: "webgpu") => GPUCanvasContextLike | null }).getContext("webgpu");
       if (!context) throw new Error("No WebGPU canvas context");
       const format = gpu.getPreferredCanvasFormat();
       context.configure({ device, format, alphaMode: "opaque" });
-      const module = device.createShaderModule({ code: webgpuShader });
-      const pipeline = await device.createRenderPipelineAsync({ layout: "auto", vertex: { module, entryPoint: "vertexMain" }, fragment: { module, entryPoint: "fragmentMain", targets: [{ format }] }, primitive: { topology: "triangle-list" } });
-      const uniformBuffer = device.createBuffer({ size: 32, usage: 0x40 | 0x08 });
+      const shaderModule = device.createShaderModule({ code: webgpuShader });
+      const pipeline = await device.createRenderPipelineAsync({ layout: "auto", vertex: { module: shaderModule, entryPoint: "vertexMain" }, fragment: { module: shaderModule, entryPoint: "fragmentMain", targets: [{ format }] }, primitive: { topology: "triangle-list" } });
+      const uniformBuffer = device.createBuffer({ size: 48, usage: 0x40 | 0x08 });
       const bindGroup = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: uniformBuffer } }] });
       renderFrame = (time, scroll, currentEnergy) => {
-        device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([canvas.width, canvas.height, pointer.x, pointer.y, time, scroll, currentEnergy, 0]));
+        device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([canvas.width, canvas.height, pointer.x, pointer.y, clickPoint.x, clickPoint.y, time, scroll, currentEnergy, 0]));
         const encoder = device.createCommandEncoder();
         const pass = encoder.beginRenderPass({ colorAttachments: [{ view: context.getCurrentTexture().createView(), clearValue: { r: 0.004, g: 0.005, b: 0.004, a: 1 }, loadOp: "clear", storeOp: "store" }] });
         pass.setPipeline(pipeline); pass.setBindGroup(0, bindGroup); pass.draw(3); pass.end();
@@ -229,17 +279,24 @@ export function KineticExperience() {
       sizeCanvas();
       try { await startWebGPU(); } catch { try { startWebGL(); } catch { setRenderer("Static"); } }
     };
-    const onPointerMove = (event: PointerEvent) => {
+    const updatePointer = (event: PointerEvent) => {
       pointerTarget.x = (event.clientX / window.innerWidth) * 2 - 1;
       pointerTarget.y = (event.clientY / window.innerHeight) * 2 - 1;
       document.documentElement.style.setProperty("--pointer-x", pointerTarget.x.toFixed(3));
       document.documentElement.style.setProperty("--pointer-y", pointerTarget.y.toFixed(3));
       if (cursorRef.current) cursorRef.current.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
     };
-    const onPointerDown = () => { energy = 1; };
+    const onPointerMove = (event: PointerEvent) => updatePointer(event);
+    const onPointerDown = (event: PointerEvent) => {
+      updatePointer(event);
+      pointer.x = pointerTarget.x; pointer.y = pointerTarget.y;
+      clickPoint.x = pointerTarget.x; clickPoint.y = pointerTarget.y;
+      energy = 1;
+    };
     const onScroll = () => {
       const maximum = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
       scrollTarget = Math.min(1, Math.max(0, window.scrollY / maximum));
+      document.documentElement.style.setProperty("--scroll-progress", scrollTarget.toFixed(4));
       setScrollPercent(Math.round(scrollTarget * 100));
       const labels = ["ORIGIN", "WORK", "EXPERIENCE", "ABOUT", "CONTACT"];
       setChapter(labels[Math.min(labels.length - 1, Math.floor(scrollTarget * labels.length))]);
@@ -249,7 +306,7 @@ export function KineticExperience() {
     const animate = (now: number) => {
       if (stopped) return;
       pointer.x += (pointerTarget.x - pointer.x) * 0.055; pointer.y += (pointerTarget.y - pointer.y) * 0.055;
-      scrollValue += (scrollTarget - scrollValue) * 0.045; energy *= 0.955;
+      scrollValue += (scrollTarget - scrollValue) * 0.045; energy = energy > 0.004 ? energy * 0.94 : 0;
       renderFrame?.(reduceMotion ? 0 : (now - start) / 1000, scrollValue, energy);
       frame = requestAnimationFrame(animate);
     };
@@ -263,6 +320,7 @@ export function KineticExperience() {
       window.removeEventListener("resize", sizeCanvas); window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerdown", onPointerDown); window.removeEventListener("scroll", onScroll);
       document.documentElement.style.removeProperty("--pointer-x"); document.documentElement.style.removeProperty("--pointer-y");
+      document.documentElement.style.removeProperty("--scroll-progress");
     };
   }, []);
 
@@ -276,7 +334,7 @@ export function KineticExperience() {
       rig.sources.forEach((source) => { try { source.stop(now + 0.4); } catch { /* already stopped */ } });
       audioRef.current = null; setSoundOn(false); window.setTimeout(() => void rig.context.close(), 450); return;
     }
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const context: AudioContext = new AudioContextClass(); await context.resume();
     const master = context.createGain(); const filter = context.createBiquadFilter();
