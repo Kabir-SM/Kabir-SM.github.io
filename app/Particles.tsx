@@ -52,7 +52,8 @@ export default function Particles({
 
     const makeParticle = (): Particle => {
       const direction = Math.random() * Math.PI * 2;
-      const velocity = (0.12 + Math.random() * 0.25) * Math.max(0.02, speed);
+      const motionScale = Math.max(0.35, speed * 3.2);
+      const velocity = (0.35 + Math.random() * 0.5) * motionScale;
       return {
         x: Math.random() * width,
         y: Math.random() * height,
@@ -85,7 +86,7 @@ export default function Particles({
 
     const draw = () => {
       context.clearRect(0, 0, width, height);
-      if (!disableRotation && !reducedMotion) angle += speed * 0.00006;
+      if (!disableRotation && !reducedMotion) angle += speed * 0.00045;
       const cosine = Math.cos(angle);
       const sine = Math.sin(angle);
       const centerX = width / 2;

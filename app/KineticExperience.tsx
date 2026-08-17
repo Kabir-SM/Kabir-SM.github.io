@@ -157,7 +157,7 @@ export function KineticExperience() {
           particleColors={PARTICLE_COLORS}
           particleCount={700}
           particleSpread={10}
-          speed={0.2}
+          speed={0.32}
           particleBaseSize={200}
           moveParticlesOnHover
           alphaParticles={false}
