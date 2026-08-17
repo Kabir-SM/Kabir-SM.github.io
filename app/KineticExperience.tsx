@@ -184,6 +184,73 @@ void main() {
 
 type AudioRig = { context: AudioContext; gain: GainNode; sources: AudioScheduledSourceNode[] };
 
+function createLofiLoop(context: AudioContext) {
+  const bpm = 82;
+  const beatDuration = 60 / bpm;
+  const beatCount = 8;
+  const duration = beatDuration * beatCount;
+  const frameCount = Math.floor(context.sampleRate * duration);
+  const loop = context.createBuffer(2, frameCount, context.sampleRate);
+  const chords = [
+    [73.42, 87.31, 110, 130.81, 164.81],
+    [98, 123.47, 146.83, 164.81, 220],
+    [65.41, 82.41, 98, 123.47, 146.83],
+    [55, 69.3, 82.41, 103.83, 116.54],
+  ];
+  const roots = [73.42, 98, 65.41, 55];
+  const tau = Math.PI * 2;
+
+  for (let channel = 0; channel < loop.numberOfChannels; channel += 1) {
+    const data = loop.getChannelData(channel);
+    let tapeNoise = 0;
+    for (let i = 0; i < frameCount; i += 1) {
+      const time = i / context.sampleRate;
+      const beatPosition = time / beatDuration;
+      const chordIndex = Math.min(chords.length - 1, Math.floor(beatPosition / 2));
+      const chord = chords[chordIndex];
+      const chordTime = time - chordIndex * beatDuration * 2;
+      const chordLength = beatDuration * 2;
+      const attack = Math.min(1, chordTime / 0.11);
+      const release = Math.min(1, (chordLength - chordTime) / 0.2);
+      const chordEnvelope = Math.max(0, Math.min(attack, release));
+      const warpedTime = time + 0.0024 * Math.sin(tau * 0.34 * time) + 0.0008 * Math.sin(tau * 0.81 * time);
+      let sample = 0;
+
+      chord.forEach((frequency, toneIndex) => {
+        const stereoPhase = channel * (toneIndex % 2 === 0 ? 0.19 : -0.14);
+        const mellow = Math.sin(tau * frequency * warpedTime + stereoPhase);
+        const harmonic = Math.sin(tau * frequency * 2 * warpedTime + stereoPhase * 0.6) * 0.22;
+        sample += (mellow + harmonic) * 0.036 * chordEnvelope;
+        const keyDecay = Math.exp(-chordTime * (2.1 + toneIndex * 0.13));
+        sample += Math.sin(tau * frequency * 2 * warpedTime + stereoPhase) * keyDecay * 0.026;
+      });
+
+      const beatInChord = chordTime % beatDuration;
+      const bassEnvelope = Math.exp(-beatInChord * 2.5);
+      sample += Math.sin(tau * roots[chordIndex] * 0.5 * warpedTime) * bassEnvelope * 0.11;
+
+      const beatIndex = Math.floor(beatPosition);
+      const beatTime = time - beatIndex * beatDuration;
+      if (beatIndex % 2 === 0) {
+        const kickPitch = 48 + 58 * Math.exp(-beatTime * 20);
+        sample += Math.sin(tau * kickPitch * beatTime) * Math.exp(-beatTime * 12) * 0.2;
+      } else {
+        const snareNoise = Math.random() * 2 - 1;
+        sample += snareNoise * Math.exp(-beatTime * 18) * 0.12;
+        sample += Math.sin(tau * 178 * beatTime) * Math.exp(-beatTime * 16) * 0.045;
+      }
+
+      const halfBeatTime = time % (beatDuration / 2);
+      sample += (Math.random() * 2 - 1) * Math.exp(-halfBeatTime * 54) * 0.028;
+      tapeNoise = tapeNoise * 0.965 + (Math.random() * 2 - 1) * 0.035;
+      const dustClick = Math.random() > 0.99945 ? (Math.random() * 2 - 1) * 0.12 : 0;
+      sample += tapeNoise * 0.018 + dustClick;
+      data[i] = Math.tanh(sample * 1.18);
+    }
+  }
+  return loop;
+}
+
 export function KineticExperience() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -337,40 +404,25 @@ export function KineticExperience() {
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const context: AudioContext = new AudioContextClass(); await context.resume();
-    const master = context.createGain(); const padBus = context.createGain(); const filter = context.createBiquadFilter();
+    const master = context.createGain(); const trackGain = context.createGain(); const filter = context.createBiquadFilter();
     const dry = context.createGain(); const wet = context.createGain(); const reverb = context.createConvolver(); const compressor = context.createDynamicsCompressor();
-    master.gain.setValueAtTime(0.0001, context.currentTime); master.gain.exponentialRampToValueAtTime(0.34, context.currentTime + 2.4);
-    padBus.gain.value = 0.92; filter.type = "lowpass"; filter.frequency.value = 1380; filter.Q.value = 0.42;
-    dry.gain.value = 0.72; wet.gain.value = 0.62;
-    compressor.threshold.value = -18; compressor.knee.value = 22; compressor.ratio.value = 2.5; compressor.attack.value = 0.04; compressor.release.value = 1.2;
-    const impulseLength = Math.floor(context.sampleRate * 4.8); const impulse = context.createBuffer(2, impulseLength, context.sampleRate);
+    master.gain.setValueAtTime(0.0001, context.currentTime); master.gain.exponentialRampToValueAtTime(0.68, context.currentTime + 1.4);
+    trackGain.gain.value = 0.96; filter.type = "lowpass"; filter.frequency.value = 4100; filter.Q.value = 0.34;
+    dry.gain.value = 0.9; wet.gain.value = 0.26;
+    compressor.threshold.value = -16; compressor.knee.value = 20; compressor.ratio.value = 3.6; compressor.attack.value = 0.018; compressor.release.value = 0.55;
+    const impulseLength = Math.floor(context.sampleRate * 2.8); const impulse = context.createBuffer(2, impulseLength, context.sampleRate);
     for (let channel = 0; channel < impulse.numberOfChannels; channel += 1) {
       const impulseData = impulse.getChannelData(channel);
       for (let i = 0; i < impulseLength; i += 1) {
-        const decay = Math.pow(1 - i / impulseLength, 3.1);
-        impulseData[i] = (Math.random() * 2 - 1) * decay * (0.72 + channel * 0.08);
+        const decay = Math.pow(1 - i / impulseLength, 3.8);
+        impulseData[i] = (Math.random() * 2 - 1) * decay * (0.48 + channel * 0.05);
       }
     }
     reverb.buffer = impulse;
-    padBus.connect(filter); filter.connect(dry); filter.connect(reverb); reverb.connect(wet); dry.connect(master); wet.connect(master); master.connect(compressor); compressor.connect(context.destination);
-    const sources: AudioScheduledSourceNode[] = [];
-    [{ frequency: 65.41, type: "sine" as OscillatorType, gain: 0.2 }, { frequency: 98, type: "sine" as OscillatorType, gain: 0.13 }, { frequency: 130.81, type: "triangle" as OscillatorType, gain: 0.075 }, { frequency: 164.81, type: "sine" as OscillatorType, gain: 0.065 }, { frequency: 196, type: "triangle" as OscillatorType, gain: 0.04 }, { frequency: 246.94, type: "sine" as OscillatorType, gain: 0.027 }].forEach((voice, index) => {
-      const oscillator = context.createOscillator(); const voiceGain = context.createGain(); const panner = context.createStereoPanner();
-      oscillator.type = voice.type; oscillator.frequency.value = voice.frequency; oscillator.detune.value = [-7, 4, -3, 6, -5, 3][index]; voiceGain.gain.value = voice.gain; panner.pan.value = [-0.72, 0.58, -0.32, 0.34, -0.52, 0.68][index];
-      oscillator.connect(voiceGain); voiceGain.connect(panner); panner.connect(padBus); oscillator.start(); sources.push(oscillator);
-    });
-    const lfo = context.createOscillator(); const lfoGain = context.createGain();
-    lfo.frequency.value = 0.038; lfoGain.gain.value = 410; lfo.connect(lfoGain); lfoGain.connect(filter.frequency); lfo.start(); sources.push(lfo);
-    const breath = context.createOscillator(); const breathGain = context.createGain();
-    breath.frequency.value = 0.055; breathGain.gain.value = 0.035; breath.connect(breathGain); breathGain.connect(master.gain); breath.start(); sources.push(breath);
-    const noiseBuffer = context.createBuffer(2, context.sampleRate * 6, context.sampleRate);
-    for (let channel = 0; channel < noiseBuffer.numberOfChannels; channel += 1) {
-      const noiseData = noiseBuffer.getChannelData(channel); let smoothedNoise = 0;
-      for (let i = 0; i < noiseData.length; i += 1) { smoothedNoise = smoothedNoise * 0.992 + (Math.random() * 2 - 1) * 0.008; noiseData[i] = smoothedNoise * 2.8; }
-    }
-    const noise = context.createBufferSource(); const noiseGain = context.createGain(); const airFilter = context.createBiquadFilter();
-    noise.buffer = noiseBuffer; noise.loop = true; noiseGain.gain.value = 0.055; airFilter.type = "bandpass"; airFilter.frequency.value = 720; airFilter.Q.value = 0.28;
-    noise.connect(noiseGain); noiseGain.connect(airFilter); airFilter.connect(reverb); airFilter.connect(dry); noise.start(); sources.push(noise);
+    trackGain.connect(filter); filter.connect(dry); filter.connect(reverb); reverb.connect(wet); dry.connect(master); wet.connect(master); master.connect(compressor); compressor.connect(context.destination);
+    const lofiSource = context.createBufferSource();
+    lofiSource.buffer = createLofiLoop(context); lofiSource.loop = true; lofiSource.connect(trackGain); lofiSource.start();
+    const sources: AudioScheduledSourceNode[] = [lofiSource];
     audioRef.current = { context, gain: master, sources }; setSoundOn(true);
   };
 
@@ -379,8 +431,8 @@ export function KineticExperience() {
       <canvas ref={canvasRef} className="experience-canvas" aria-hidden="true" />
       <div ref={cursorRef} className="kinetic-cursor" aria-hidden="true"><span /></div>
       <div className="renderer-badge" aria-label={`Visual renderer: ${renderer}`}><span className="renderer-dot" />{renderer}</div>
-      <button className={`sound-toggle ${soundOn ? "is-on" : ""}`} type="button" aria-label={soundOn ? "Turn ambient sound off" : "Turn ambient sound on"} aria-pressed={soundOn} onClick={() => void toggleSound()} title="Layered ambient soundscape">
-        <span className="sound-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>AMBIENT: {soundOn ? "ON" : "OFF"}</span>
+      <button className={`sound-toggle ${soundOn ? "is-on" : ""}`} type="button" aria-label={soundOn ? "Turn lo-fi soundtrack off" : "Turn lo-fi soundtrack on"} aria-pressed={soundOn} onClick={() => void toggleSound()} title="Lo-fi beats and vinyl atmosphere">
+        <span className="sound-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>LO-FI: {soundOn ? "ON" : "OFF"}</span>
       </button>
       <div className="experience-progress" aria-hidden="true">
         <span>{String(scrollPercent).padStart(2, "0")}</span><span className="progress-rail"><i style={{ height: `${scrollPercent}%` }} /></span><strong>{chapter}</strong>

@@ -434,6 +434,10 @@ export default function Home() {
             <div className="earlier-experience">
               <p className="eyebrow">Earlier experience</p>
               <div>
+                <span>Zara / Sales Associate</span>
+                <span>November 2025 - January 2026</span>
+              </div>
+              <div>
                 <span>CVS / Pharmacy Technician</span>
                 <span>July 2024 - November 2025</span>
               </div>

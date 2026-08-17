@@ -63,8 +63,9 @@ export function ContactModal() {
       "",
       "Sent from kabir-marwaha-portfolio.hotwheelers11.chatgpt.site",
     ].join("\n");
-    setStatus("Your email app is opening. Press Send there to deliver your message to Kabir.");
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(CONTACT_EMAIL)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setStatus("Opening Gmail with your message filled in. Press Send there to deliver it to Kabir.");
+    window.location.assign(gmailUrl);
   };
 
   const copyEmail = async () => {
@@ -117,6 +118,7 @@ export function ContactModal() {
                 <option>AI / data project</option>
                 <option>Collaboration</option>
                 <option>General conversation</option>
+                <option>Other</option>
               </select>
             </label>
           </div>
@@ -125,10 +127,10 @@ export function ContactModal() {
             <textarea name="message" rows={5} placeholder="A little about the opportunity, project, or idea…" required />
           </label>
           <div className="contact-form-actions">
-            <button className="button button-primary" type="submit">Prepare email <span aria-hidden="true">↗</span></button>
+            <button className="button button-primary" type="submit">Open Gmail <span aria-hidden="true">↗</span></button>
             <button className="button button-secondary" type="button" onClick={() => void copyEmail()}>Copy Kabir&apos;s email</button>
           </div>
-          <p className="contact-form-note">Nothing is uploaded or stored. Your email app handles delivery.</p>
+          <p className="contact-form-note">Nothing is uploaded or stored. Gmail handles delivery after you press Send.</p>
           <p className="contact-form-status" role="status" aria-live="polite">{status}</p>
         </form>
       </div>
