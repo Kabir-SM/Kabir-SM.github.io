@@ -275,14 +275,25 @@ export function KineticExperience() {
   const [chapter, setChapter] = useState("ORIGIN");
 
   useEffect(() => {
-    const onPointerMove = (event: PointerEvent) => {
-      const pointerX = (event.clientX / window.innerWidth) * 2 - 1;
-      const pointerY = (event.clientY / window.innerHeight) * 2 - 1;
+    let pointerFrame = 0;
+    let scrollFrame = 0;
+    let pointerClientX = 0;
+    let pointerClientY = 0;
+    const commitPointer = () => {
+      pointerFrame = 0;
+      const pointerX = (pointerClientX / window.innerWidth) * 2 - 1;
+      const pointerY = (pointerClientY / window.innerHeight) * 2 - 1;
       document.documentElement.style.setProperty("--pointer-x", pointerX.toFixed(3));
       document.documentElement.style.setProperty("--pointer-y", pointerY.toFixed(3));
-      if (cursorRef.current) cursorRef.current.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
+      if (cursorRef.current) cursorRef.current.style.transform = `translate3d(${pointerClientX}px, ${pointerClientY}px, 0)`;
     };
-    const onScroll = () => {
+    const onPointerMove = (event: PointerEvent) => {
+      pointerClientX = event.clientX;
+      pointerClientY = event.clientY;
+      if (!pointerFrame) pointerFrame = requestAnimationFrame(commitPointer);
+    };
+    const commitScroll = () => {
+      scrollFrame = 0;
       const maximum = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
       const progress = Math.min(1, Math.max(0, window.scrollY / maximum));
       document.documentElement.style.setProperty("--scroll-progress", progress.toFixed(4));
@@ -290,6 +301,7 @@ export function KineticExperience() {
       const labels = ["ORIGIN", "WORK", "EXPERIENCE", "ABOUT", "CONTACT"];
       setChapter(labels[Math.min(labels.length - 1, Math.floor(progress * labels.length))]);
     };
+    const onScroll = () => { if (!scrollFrame) scrollFrame = requestAnimationFrame(commitScroll); };
     const revealObserver = new IntersectionObserver(
       (entries) => entries.forEach((entry) => { if (entry.isIntersecting) entry.target.classList.add("is-visible"); }),
       { threshold: 0.08 },
@@ -297,8 +309,10 @@ export function KineticExperience() {
     document.querySelectorAll(".section, .contact-section").forEach((node) => revealObserver.observe(node));
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
+    commitScroll();
     return () => {
+      cancelAnimationFrame(pointerFrame);
+      cancelAnimationFrame(scrollFrame);
       revealObserver.disconnect();
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("scroll", onScroll);
@@ -309,10 +323,15 @@ export function KineticExperience() {
   }, []);
 
   useEffect(() => {
-    soundtrackRef.current = createCosmicLofiLoop(44100)
-      .then((buffer) => { soundtrackBufferRef.current = buffer; return buffer; })
-      .catch(() => null);
+    const prepareSoundtrack = () => {
+      if (soundtrackRef.current) return;
+      soundtrackRef.current = createCosmicLofiLoop(44100)
+        .then((buffer) => { soundtrackBufferRef.current = buffer; return buffer; })
+        .catch(() => null);
+    };
+    const prepareTimer = window.setTimeout(prepareSoundtrack, 250);
     return () => {
+      window.clearTimeout(prepareTimer);
       audioGenerationRef.current += 1;
       if (audioRef.current) void audioRef.current.context.close();
     };
@@ -325,11 +344,27 @@ export function KineticExperience() {
       if (!rig) return;
       const target = event.target instanceof Element ? event.target : null;
       const interactive = Boolean(target?.closest("a, button, input, select, textarea, summary, [role='button']"));
-      playInterfaceSound(rig.context, rig.gain, interactive);
+      if (rig.context.state === "suspended") {
+        void rig.context.resume().then(() => playInterfaceSound(rig.context, rig.gain, interactive)).catch(() => undefined);
+      } else {
+        playInterfaceSound(rig.context, rig.gain, interactive);
+      }
     };
     document.addEventListener("pointerdown", onPointerDown, { passive: true });
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, []);
+
+  useEffect(() => {
+    if (soundState !== "on") return;
+    const onVisibilityChange = () => {
+      const context = audioRef.current?.context;
+      if (!context || context.state === "closed") return;
+      if (document.hidden) void context.suspend();
+      else void context.resume();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [soundState]);
 
   const toggleSound = async () => {
     if (audioRef.current) {
@@ -361,8 +396,9 @@ export function KineticExperience() {
       setSoundState("on");
       playInterfaceSound(context, master, true);
 
-      const soundtrack = soundtrackBufferRef.current
-        ?? await (soundtrackRef.current ?? createCosmicLofiLoop(context.sampleRate));
+      const soundtrackPromise = soundtrackRef.current ?? createCosmicLofiLoop(context.sampleRate);
+      soundtrackRef.current = soundtrackPromise;
+      const soundtrack = soundtrackBufferRef.current ?? await soundtrackPromise;
       if (!soundtrack || audioRef.current !== rig || audioGenerationRef.current !== generation) return;
       const lofiSource = context.createBufferSource();
       lofiSource.buffer = soundtrack; lofiSource.loop = true; lofiSource.connect(trackGain);

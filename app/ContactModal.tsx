@@ -44,11 +44,13 @@ export function ContactModal() {
   const prepareEmail = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const name = String(data.get("name") || "Portfolio visitor").trim();
-    const email = String(data.get("email") || "").trim();
-    const company = String(data.get("company") || "Not provided").trim();
+    const singleLine = (value: FormDataEntryValue | null, fallback: string, limit: number) =>
+      String(value || fallback).replace(/[\r\n\t]+/g, " ").trim().slice(0, limit);
+    const name = singleLine(data.get("name"), "Portfolio visitor", 80);
+    const email = singleLine(data.get("email"), "", 254);
+    const company = singleLine(data.get("company"), "Not provided", 120);
     const interest = String(data.get("interest") || "General conversation").trim();
-    const message = String(data.get("message") || "").trim();
+    const message = String(data.get("message") || "").trim().slice(0, 2000);
     const subject = `Portfolio inquiry from ${name} — ${interest}`;
     const body = [
       `Hi Kabir,`,
@@ -98,17 +100,17 @@ export function ContactModal() {
           <div className="contact-form-grid">
             <label>
               <span>Name *</span>
-              <input ref={firstInputRef} name="name" type="text" autoComplete="name" placeholder="Your name" required />
+              <input ref={firstInputRef} name="name" type="text" autoComplete="name" placeholder="Your name" maxLength={80} required />
             </label>
             <label>
               <span>Email *</span>
-              <input name="email" type="email" autoComplete="email" placeholder="you@company.com" required />
+              <input name="email" type="email" autoComplete="email" placeholder="you@company.com" maxLength={254} required />
             </label>
           </div>
           <div className="contact-form-grid">
             <label>
               <span>Company / organization</span>
-              <input name="company" type="text" autoComplete="organization" placeholder="Optional" />
+              <input name="company" type="text" autoComplete="organization" placeholder="Optional" maxLength={120} />
             </label>
             <label>
               <span>Interested in</span>
@@ -124,7 +126,7 @@ export function ContactModal() {
           </div>
           <label>
             <span>Message *</span>
-            <textarea name="message" rows={5} placeholder="A little about the opportunity, project, or idea…" required />
+            <textarea name="message" rows={5} placeholder="A little about the opportunity, project, or idea…" maxLength={2000} required />
           </label>
           <div className="contact-form-actions">
             <button className="button button-primary" type="submit">Open Gmail <span aria-hidden="true">↗</span></button>

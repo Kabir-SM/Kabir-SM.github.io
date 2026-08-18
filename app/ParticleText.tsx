@@ -73,7 +73,11 @@ export default function ParticleText({
 
     let particles: Particle[] = [];
     let frame = 0;
+    let disposed = false;
     let visible = true;
+    let documentVisible = !document.hidden;
+    let canvasWidth = 1;
+    let canvasHeight = 1;
     let hovered = false;
     let localPulse = 0;
     let lastTime = performance.now();
@@ -81,12 +85,19 @@ export default function ParticleText({
     const pointer = { x: -10000, y: -10000, active: false };
     const pulseOrigin = { x: -10000, y: -10000 };
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const device = navigator as Navigator & { deviceMemory?: number };
+    const lowPower = window.matchMedia("(max-width: 760px)").matches
+      || (device.hardwareConcurrency ?? 8) <= 4
+      || (device.deviceMemory ?? 8) <= 4;
 
     const buildParticles = () => {
+      if (disposed) return;
       const rect = host.getBoundingClientRect();
       const width = Math.max(1, Math.round(rect.width));
-      const canvasHeight = Math.max(1, Math.round(rect.height));
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const nextCanvasHeight = Math.max(1, Math.round(rect.height));
+      const ratio = Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 1.5);
+      canvasWidth = width;
+      canvasHeight = nextCanvasHeight;
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(canvasHeight * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -125,7 +136,7 @@ export default function ParticleText({
           if (pixels[(y * width + x) * 4 + 3] > 100) points.push({ x, y });
         }
       }
-      const particleLimit = 8500;
+      const particleLimit = reduceMotion ? 2800 : lowPower ? 4600 : 8500;
       const keepEvery = Math.max(1, Math.ceil(points.length / particleLimit));
       particles = points.filter((_, index) => index % keepEvery === 0).map((point, index) => {
         const seed = pseudoRandom(index + text.length * 17);
@@ -170,12 +181,16 @@ export default function ParticleText({
       localPulse = 1;
     };
 
-    const draw = (now: number) => {
+    function queueDraw() {
+      if (!disposed && visible && documentVisible && frame === 0) frame = requestAnimationFrame(draw);
+    }
+
+    function draw(now: number) {
+      frame = 0;
       const delta = Math.min(34, now - lastTime);
       lastTime = now;
       if (visible && particles.length) {
-        const rect = host.getBoundingClientRect();
-        context.clearRect(0, 0, rect.width, rect.height);
+        context.clearRect(0, 0, canvasWidth, canvasHeight);
         const elapsed = now - bornAt;
         localPulse = Math.max(0, localPulse - delta / Math.max(300, gatherDuration * 0.65));
         const basePoints: Particle[] = [];
@@ -242,22 +257,38 @@ export default function ParticleText({
         brightPoints.forEach((particle) => context.fillRect(particle.x, particle.y, particleSize * 1.25, particleSize * 1.25));
         context.shadowBlur = 0;
       }
-      frame = requestAnimationFrame(draw);
-    };
+      queueDraw();
+    }
 
     const resizeObserver = new ResizeObserver(buildParticles);
-    const visibilityObserver = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; }, { rootMargin: "120px" });
+    const visibilityObserver = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) {
+        lastTime = performance.now();
+        queueDraw();
+      } else if (frame) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      }
+    }, { rootMargin: "120px" });
+    const onVisibilityChange = () => {
+      documentVisible = !document.hidden;
+      if (documentVisible) queueDraw();
+      else if (frame) { cancelAnimationFrame(frame); frame = 0; }
+    };
     resizeObserver.observe(host);
     visibilityObserver.observe(host);
     host.addEventListener("pointerenter", onPointerEnter);
     host.addEventListener("pointermove", onPointerMove);
     host.addEventListener("pointerleave", onPointerLeave);
     host.addEventListener("pointerdown", onPointerDown);
-    void document.fonts?.ready.then(buildParticles);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    void document.fonts?.ready.then(() => { if (!disposed) buildParticles(); });
     buildParticles();
-    frame = requestAnimationFrame(draw);
+    queueDraw();
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
@@ -265,6 +296,7 @@ export default function ParticleText({
       host.removeEventListener("pointermove", onPointerMove);
       host.removeEventListener("pointerleave", onPointerLeave);
       host.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [color, density, fontFamily, fontWeight, gatherDuration, glow, highlightColor, idleDrift, particleSize, pointerRepel, repelRadius, scatter, stagger, text, trigger]);
 
