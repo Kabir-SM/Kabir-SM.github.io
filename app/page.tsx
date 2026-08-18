@@ -1,6 +1,7 @@
 import { KineticExperience } from "./KineticExperience";
 import ParticleText from "./ParticleText";
 import { ContactModal, ContactTrigger } from "./ContactModal";
+import { PortfolioInteractions } from "./PortfolioInteractions";
 
 const experience = [
   {
@@ -11,6 +12,11 @@ const experience = [
     copy:
       "Translate customer needs into clear product decisions through tailored conversations, hands-on demonstrations, and deep knowledge across Apple hardware, accessories, and services.",
     tags: ["Product knowledge", "Customer experience", "Collaboration"],
+    highlights: [
+      "Turn individual customer needs into clear product and service recommendations.",
+      "Deliver hands-on demonstrations across hardware, accessories, and services.",
+      "Coordinate with teammates to keep the product-zone experience responsive and useful.",
+    ],
   },
   {
     company: "Goldfish Swim School / Boardman Bay Capital Management",
@@ -20,6 +26,11 @@ const experience = [
     copy:
       "Built production automations for aged accounts and absence reporting, connected IClassPro data to Excel, Gmail, and Podium, and launched a centralized reporting hub across three locations.",
     tags: ["Python", "Automation", "Reporting", "AI integration"],
+    highlights: [
+      "Connected IClassPro data with Excel, Gmail, and Podium workflows.",
+      "Automated aged-account and absence-reporting processes across three locations.",
+      "Created a centralized reporting surface for recurring operational decisions.",
+    ],
   },
   {
     company: "All Scientific Technology Group, LLC",
@@ -29,6 +40,11 @@ const experience = [
     copy:
       "Integrated RFID hardware with internal software for real-time medical equipment tracking, improving inventory visibility and supporting deployments at major New York City healthcare facilities.",
     tags: ["RFID systems", "Systems integration", "Field deployment"],
+    highlights: [
+      "Integrated RFID readers with internal inventory software.",
+      "Tested real-time equipment visibility across healthcare environments.",
+      "Supported field deployments at major New York City healthcare facilities.",
+    ],
   },
   {
     company: "New York Institute of Technology",
@@ -38,6 +54,11 @@ const experience = [
     copy:
       "Led PolyDB, a JavaFX and JDBC application that unified PostgreSQL, MySQL, and Oracle workflows through one interface while eliminating more than 400 lines of duplicated connection logic.",
     tags: ["Java", "JavaFX", "JDBC", "SQL"],
+    highlights: [
+      "Led the design of one interface for PostgreSQL, MySQL, and Oracle workflows.",
+      "Centralized connection logic and removed more than 400 duplicated lines.",
+      "Implemented authentication, schema inspection, table rendering, and GUI-driven CRUD.",
+    ],
   },
 ];
 
@@ -52,6 +73,9 @@ const projects = [
     tags: ["Python", "Excel", "Gmail", "Podium", "IClassPro"],
     accent: "cyan",
     visual: "workflow",
+    challenge: "Attendance and account follow-up moved through disconnected systems, creating repetitive work and inconsistent handoffs.",
+    approach: "Designed a modular Python workflow that validates IClassPro exports, builds structured Excel reports, and prepares coordinated Gmail and Podium outreach.",
+    features: ["Input validation and structured reporting", "Multi-location workflow support", "Email and messaging coordination", "Maintainable modular automation"],
   },
   {
     index: "02",
@@ -63,6 +87,9 @@ const projects = [
     tags: ["Java", "JavaFX", "JDBC", "PostgreSQL", "MySQL", "Oracle"],
     accent: "lime",
     visual: "database",
+    challenge: "Students needed different tools and repeated connection code to work across PostgreSQL, MySQL, and Oracle databases.",
+    approach: "Built a JavaFX desktop application with a shared JDBC layer, authentication, schema browsing, dynamic tables, and GUI-driven CRUD operations.",
+    features: ["Three database engines", "Centralized connection management", "Schema and table inspection", "Interactive CRUD workflows"],
   },
   {
     index: "03",
@@ -74,6 +101,9 @@ const projects = [
     tags: ["Data analysis", "Reporting", "AI / LLM", "Process design"],
     accent: "violet",
     visual: "dashboard",
+    challenge: "Recurring operational information was distributed across locations and difficult to translate into timely action.",
+    approach: "Created a centralized reporting surface that organizes recurring metrics, exposes workflow bottlenecks, and provides a home for AI-assisted process improvements.",
+    features: ["Centralized operational reporting", "Bottleneck visibility", "Multi-location context", "AI-ready improvement queue"],
   },
   {
     index: "04",
@@ -85,6 +115,9 @@ const projects = [
     tags: ["RFID", "Inventory systems", "Testing", "Healthcare tech"],
     accent: "orange",
     visual: "rfid",
+    challenge: "Healthcare teams needed more reliable visibility into the location and lifecycle of medical equipment.",
+    approach: "Connected RFID hardware with internal inventory software, tested real-time data flow, and supported deployment in active healthcare environments.",
+    features: ["RFID reader integration", "Real-time asset visibility", "Inventory lifecycle data", "Field testing and deployment"],
   },
 ];
 
@@ -188,15 +221,15 @@ export default function Home() {
         <div className="signal-grid" aria-hidden="true" />
 
         <header className="site-header">
-          <a className="brand" href="#top" aria-label="Kabir Marwaha, home">
+          <a className="brand" href="#top" aria-label="Kabir Marwaha, home" data-cursor="HOME">
             <span className="brand-mark">KM</span>
             <span>Kabir Marwaha</span>
           </a>
           <nav className="main-nav" aria-label="Primary navigation">
-            <a href="#work">Work</a>
-            <a href="#experience">Experience</a>
-            <a href="#about">About</a>
-            <a href="#contact">Contact</a>
+            <a href="#work" data-cursor="VIEW WORK">Work</a>
+            <a href="#experience" data-cursor="VIEW ROLES">Experience</a>
+            <a href="#about" data-cursor="ABOUT KABIR">About</a>
+            <a href="#contact" data-cursor="CONTACT">Contact</a>
           </nav>
           <ContactTrigger className="header-cta">
             Let&apos;s talk <span aria-hidden="true">↗</span>
@@ -238,7 +271,7 @@ export default function Home() {
               </p>
               <p className="hero-system-note">A quiet field of interactive particles moves behind the work without competing with it.</p>
               <div className="hero-actions">
-                <a className="button button-primary" href="#work">
+                <a className="button button-primary" href="#work" data-cursor="EXPLORE">
                   Explore my work <span aria-hidden="true">↓</span>
                 </a>
                 <a
@@ -246,6 +279,7 @@ export default function Home() {
                   href="/Kabir_Marwaha_Resume_2026.pdf"
                   target="_blank"
                   rel="noreferrer"
+                  data-cursor="OPEN PDF"
                 >
                   View resume <span aria-hidden="true">↗</span>
                 </a>
@@ -371,13 +405,18 @@ export default function Home() {
                   <p className="project-kicker">{project.kicker}</p>
                   <h3>{project.title}</h3>
                   <p className="project-description">{project.description}</p>
-                  <details>
-                    <summary>Project impact <span aria-hidden="true">+</span></summary>
-                    <p>{project.impact}</p>
-                  </details>
+                  <p className="project-impact-preview"><span>Impact</span>{project.impact}</p>
                   <ul className="tag-list" aria-label={`${project.title} technologies`}>
                     {project.tags.map((tag) => <li key={tag}>{tag}</li>)}
                   </ul>
+                  <div className="project-card-action" aria-hidden="true">Open case study <span>↗</span></div>
+                  <button
+                    className="project-card-hit-area"
+                    type="button"
+                    aria-label={`Open ${project.title} case study`}
+                    data-project-open={project.index}
+                    data-cursor="VIEW CASE"
+                  />
                 </article>
               ))}
             </div>
@@ -413,21 +452,32 @@ export default function Home() {
 
             <div className="timeline">
               {experience.map((item, index) => (
-                <article className="timeline-item" key={`${item.company}-${item.role}`}>
-                  <div className="timeline-index">0{index + 1}</div>
-                  <div className="timeline-main">
-                    <p className="timeline-company">{item.company}</p>
-                    <h3>{item.role}</h3>
-                    <p>{item.copy}</p>
+                <details className="timeline-item" key={`${item.company}-${item.role}`}>
+                  <summary className="timeline-summary" data-cursor="EXPAND ROLE">
+                    <div className="timeline-index">0{index + 1}</div>
+                    <div className="timeline-main">
+                      <p className="timeline-company">{item.company}</p>
+                      <h3>{item.role}</h3>
+                      <p>{item.copy}</p>
+                    </div>
+                    <div className="timeline-meta">
+                      <span>{item.dates}</span>
+                      <span>{item.place}</span>
+                      <i className="timeline-toggle" aria-hidden="true">+</i>
+                    </div>
+                  </summary>
+                  <div className="timeline-expanded">
+                    <div>
+                      <p className="eyebrow">Selected contributions</p>
+                      <ul>
+                        {item.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}
+                      </ul>
+                    </div>
                     <ul className="tag-list compact" aria-label={`${item.role} skills`}>
                       {item.tags.map((tag) => <li key={tag}>{tag}</li>)}
                     </ul>
                   </div>
-                  <div className="timeline-meta">
-                    <span>{item.dates}</span>
-                    <span>{item.place}</span>
-                  </div>
-                </article>
+                </details>
               ))}
             </div>
 
@@ -537,17 +587,17 @@ export default function Home() {
               where thoughtful technology can make a measurable difference.
             </p>
             <div className="contact-links">
-              <a href="mailto:Kabir_1_6@icloud.com">
+              <a href="mailto:Kabir_1_6@icloud.com" data-cursor="EMAIL">
                 <span>Email</span>
                 <strong>Kabir_1_6@icloud.com</strong>
                 <i aria-hidden="true">↗</i>
               </a>
-              <a href="tel:+19175133731">
+              <a href="tel:+19175133731" data-cursor="CALL">
                 <span>Phone</span>
                 <strong>(917) 513-3731</strong>
                 <i aria-hidden="true">↗</i>
               </a>
-              <a href="/Kabir_Marwaha_Resume_2026.pdf" target="_blank" rel="noreferrer">
+              <a href="/Kabir_Marwaha_Resume_2026.pdf" target="_blank" rel="noreferrer" data-cursor="OPEN PDF">
                 <span>Resume</span>
                 <strong>View PDF</strong>
                 <i aria-hidden="true">↗</i>
@@ -557,14 +607,15 @@ export default function Home() {
         </main>
 
         <footer className="site-footer">
-          <a className="brand" href="#top" aria-label="Back to top">
+          <a className="brand" href="#top" aria-label="Back to top" data-cursor="TOP">
             <span className="brand-mark">KM</span>
             <span>Kabir Marwaha</span>
           </a>
           <p>Built around useful work. © {new Date().getFullYear()}</p>
-          <a href="#top">Back to top ↑</a>
+          <a href="#top" data-cursor="TOP">Back to top ↑</a>
         </footer>
         <ContactModal />
+        <PortfolioInteractions projects={projects} />
       </div>
     </>
   );

@@ -25,6 +25,9 @@ test("server-renders the finished portfolio", async () => {
   assert.match(html, /<title>Kabir Marwaha Portfolio<\/title>/i);
   assert.match(html, /Systems in motion/i);
   assert.match(html, /Start a conversation/i);
+  assert.match(html, /Ask Kabir/i);
+  assert.match(html, /Open Absence Report Automation case study/i);
+  assert.match(html, /Move through the portfolio/i);
   assert.match(html, /Kabir_1_6@icloud\.com/i);
   assert.doesNotMatch(html, /Your site is taking shape|Building your site|codex-preview/i);
 });

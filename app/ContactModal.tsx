@@ -5,11 +5,12 @@ import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 const OPEN_CONTACT_EVENT = "open-kabir-contact";
 const CONTACT_EMAIL = "Kabir_1_6@icloud.com";
 
-export function ContactTrigger({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function ContactTrigger({ children, className = "", cursorLabel = "LET'S TALK" }: { children: ReactNode; className?: string; cursorLabel?: string }) {
   return (
     <button
       className={`contact-trigger ${className}`.trim()}
       type="button"
+      data-cursor={cursorLabel}
       onClick={() => window.dispatchEvent(new Event(OPEN_CONTACT_EVENT))}
     >
       {children}

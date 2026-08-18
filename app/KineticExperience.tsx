@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Particles from "./Particles";
 
-type AudioRig = { context: AudioContext; gain: GainNode; sources: AudioScheduledSourceNode[] };
+type AudioRig = { context: AudioContext; gain: GainNode; sources: AudioScheduledSourceNode[]; stopVisuals: () => void };
 
 const PARTICLE_COLORS = ["#f3f3f3"];
 const NOTE = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
@@ -240,6 +240,27 @@ function playInterfaceSound(context: AudioContext, destination: AudioNode, inter
   scheduleTone(context, destination, base * 1.5, now + 0.016, 0.14, interactive ? 0.06 : 0.04, "triangle", 0.08);
 }
 
+function startAudioVisuals(analyser: AnalyserNode) {
+  const frequencies = new Uint8Array(analyser.frequencyBinCount);
+  let frame = 0;
+  let smoothed = 0;
+  const draw = () => {
+    analyser.getByteFrequencyData(frequencies);
+    let energy = 0;
+    const bins = Math.min(42, frequencies.length);
+    for (let index = 0; index < bins; index += 1) energy += frequencies[index];
+    const level = Math.min(1, energy / Math.max(1, bins * 150));
+    smoothed += (level - smoothed) * 0.16;
+    document.documentElement.style.setProperty("--audio-level", smoothed.toFixed(3));
+    frame = requestAnimationFrame(draw);
+  };
+  frame = requestAnimationFrame(draw);
+  return () => {
+    cancelAnimationFrame(frame);
+    document.documentElement.style.setProperty("--audio-level", "0");
+  };
+}
+
 function startImmediateCosmicSwell(context: AudioContext, destination: AudioNode) {
   const bus = context.createGain();
   const filter = context.createBiquadFilter();
@@ -292,6 +313,15 @@ export function KineticExperience() {
       pointerClientY = event.clientY;
       if (!pointerFrame) pointerFrame = requestAnimationFrame(commitPointer);
     };
+    const onPointerOver = (event: PointerEvent) => {
+      const target = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-cursor]") : null;
+      const label = target?.dataset.cursor ?? "";
+      const cursor = cursorRef.current;
+      if (!cursor) return;
+      cursor.classList.toggle("is-context", Boolean(label));
+      const cursorText = cursor.querySelector("span");
+      if (cursorText) cursorText.textContent = label;
+    };
     const commitScroll = () => {
       scrollFrame = 0;
       const maximum = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
@@ -308,6 +338,7 @@ export function KineticExperience() {
     );
     document.querySelectorAll(".section, .contact-section").forEach((node) => revealObserver.observe(node));
     window.addEventListener("pointermove", onPointerMove, { passive: true });
+    document.addEventListener("pointerover", onPointerOver, { passive: true });
     window.addEventListener("scroll", onScroll, { passive: true });
     commitScroll();
     return () => {
@@ -315,6 +346,7 @@ export function KineticExperience() {
       cancelAnimationFrame(scrollFrame);
       revealObserver.disconnect();
       window.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerover", onPointerOver);
       window.removeEventListener("scroll", onScroll);
       document.documentElement.style.removeProperty("--pointer-x");
       document.documentElement.style.removeProperty("--pointer-y");
@@ -333,7 +365,10 @@ export function KineticExperience() {
     return () => {
       window.clearTimeout(prepareTimer);
       audioGenerationRef.current += 1;
-      if (audioRef.current) void audioRef.current.context.close();
+      if (audioRef.current) {
+        audioRef.current.stopVisuals();
+        void audioRef.current.context.close();
+      }
     };
   }, []);
 
@@ -370,6 +405,7 @@ export function KineticExperience() {
     if (audioRef.current) {
       audioGenerationRef.current += 1;
       const rig = audioRef.current; const now = rig.context.currentTime;
+      rig.stopVisuals();
       rig.gain.gain.cancelScheduledValues(now); rig.gain.gain.setValueAtTime(rig.gain.gain.value, now);
       rig.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
       rig.sources.forEach((source) => { try { source.stop(now + 0.85); } catch { /* already stopped */ } });
@@ -384,14 +420,16 @@ export function KineticExperience() {
       await context.resume();
       const master = context.createGain();
       const trackGain = context.createGain();
+      const analyser = context.createAnalyser();
       const compressor = context.createDynamicsCompressor();
       master.gain.value = 0.84;
       trackGain.gain.value = 0.0001;
       compressor.threshold.value = -13; compressor.knee.value = 20; compressor.ratio.value = 3.2;
       compressor.attack.value = 0.015; compressor.release.value = 0.5;
-      trackGain.connect(master); master.connect(compressor); compressor.connect(context.destination);
+      analyser.fftSize = 256; analyser.smoothingTimeConstant = 0.86;
+      trackGain.connect(master); master.connect(analyser); analyser.connect(compressor); compressor.connect(context.destination);
       const intro = startImmediateCosmicSwell(context, master);
-      const rig: AudioRig = { context, gain: master, sources: [...intro.sources] };
+      const rig: AudioRig = { context, gain: master, sources: [...intro.sources], stopVisuals: startAudioVisuals(analyser) };
       audioRef.current = rig;
       setSoundState("on");
       playInterfaceSound(context, master, true);
@@ -413,7 +451,9 @@ export function KineticExperience() {
       rig.sources.push(lofiSource);
       intro.sources.forEach((source) => { try { source.stop(now + 1.3); } catch { /* already stopped */ } });
     } catch {
+      if (audioRef.current?.context === context) audioRef.current.stopVisuals();
       await context.close();
+      document.documentElement.style.setProperty("--audio-level", "0");
       audioRef.current = null;
       setSoundState("off");
     }

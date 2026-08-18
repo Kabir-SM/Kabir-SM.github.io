@@ -103,7 +103,9 @@ export default function Particles({
       }
       lastDraw = now;
       context.clearRect(0, 0, width, height);
-      if (!disableRotation && !reducedMotion) angle += speed * 0.00045;
+      const audioLevel = Math.min(1, Math.max(0, Number(document.documentElement.style.getPropertyValue("--audio-level")) || 0));
+      const audioMotion = 1 + audioLevel * 1.35;
+      if (!disableRotation && !reducedMotion) angle += speed * 0.00045 * audioMotion;
       const cosine = Math.cos(angle);
       const sine = Math.sin(angle);
       const centerX = width / 2;
@@ -115,8 +117,8 @@ export default function Particles({
       context.shadowBlur = lowPower ? 0 : 3;
       for (const particle of particles) {
         if (!reducedMotion) {
-          particle.x += particle.vx * spreadStrength * particle.depth;
-          particle.y += particle.vy * spreadStrength * particle.depth;
+          particle.x += particle.vx * spreadStrength * particle.depth * audioMotion;
+          particle.y += particle.vy * spreadStrength * particle.depth * audioMotion;
         }
         if (particle.x < -12) particle.x = width + 12;
         if (particle.x > width + 12) particle.x = -12;
@@ -145,8 +147,8 @@ export default function Particles({
 
         context.beginPath();
         context.fillStyle = particle.color;
-        context.globalAlpha = alphaParticles ? 0.26 + particle.depth * 0.56 : 0.82;
-        context.arc(drawX, drawY, particle.size * particle.depth, 0, Math.PI * 2);
+        context.globalAlpha = alphaParticles ? 0.26 + particle.depth * 0.56 : Math.min(1, 0.78 + audioLevel * 0.2);
+        context.arc(drawX, drawY, particle.size * particle.depth * (1 + audioLevel * 0.32), 0, Math.PI * 2);
         context.fill();
       }
       context.globalAlpha = 1;
