@@ -43,6 +43,35 @@ function scheduleTone(
   oscillator.start(start); oscillator.stop(start + duration + 0.04);
 }
 
+function schedulePad(
+  context: BaseAudioContext,
+  destination: AudioNode,
+  frequency: number,
+  start: number,
+  duration: number,
+  volume: number,
+  pan = 0,
+) {
+  const oscillator = context.createOscillator();
+  const overtone = context.createOscillator();
+  const envelope = context.createGain();
+  const overtoneGain = context.createGain();
+  const panner = context.createStereoPanner();
+  oscillator.type = "sine"; overtone.type = "triangle";
+  oscillator.frequency.value = frequency; overtone.frequency.value = frequency * 2;
+  oscillator.detune.value = -3.5; overtone.detune.value = 4.5;
+  envelope.gain.setValueAtTime(0.0001, start);
+  envelope.gain.exponentialRampToValueAtTime(volume, start + Math.min(1.15, duration * 0.28));
+  envelope.gain.setValueAtTime(volume * 0.9, start + Math.max(1.16, duration - 1.35));
+  envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  overtoneGain.gain.value = 0.14;
+  panner.pan.value = pan;
+  oscillator.connect(envelope); overtone.connect(overtoneGain); overtoneGain.connect(envelope);
+  envelope.connect(panner); panner.connect(destination);
+  oscillator.start(start); overtone.start(start);
+  oscillator.stop(start + duration + 0.05); overtone.stop(start + duration + 0.05);
+}
+
 function createNoiseBuffer(context: BaseAudioContext, duration: number, random: () => number) {
   const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * duration), context.sampleRate);
   const data = buffer.getChannelData(0);
@@ -58,12 +87,12 @@ function scheduleKick(context: BaseAudioContext, destination: AudioNode, start: 
   const oscillator = context.createOscillator();
   const envelope = context.createGain();
   oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(112, start);
-  oscillator.frequency.exponentialRampToValueAtTime(43, start + 0.16);
+  oscillator.frequency.setValueAtTime(86, start);
+  oscillator.frequency.exponentialRampToValueAtTime(34, start + 0.32);
   envelope.gain.setValueAtTime(volume, start);
-  envelope.gain.exponentialRampToValueAtTime(0.0001, start + 0.32);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, start + 0.72);
   oscillator.connect(envelope); envelope.connect(destination);
-  oscillator.start(start); oscillator.stop(start + 0.34);
+  oscillator.start(start); oscillator.stop(start + 0.75);
 }
 
 function scheduleNoiseHit(
@@ -88,14 +117,14 @@ function scheduleNoiseHit(
   source.start(start, 0, duration); source.stop(start + duration + 0.02);
 }
 
-async function createAnimeLofiLoop(context: AudioContext) {
-  const bpm = 78;
+async function createCosmicLofiLoop(sampleRate = 44100) {
+  const bpm = 68;
   const beat = 60 / bpm;
   const bars = 16;
   const barDuration = beat * 4;
   const duration = bars * barDuration;
-  const offline = new OfflineAudioContext(2, Math.ceil(context.sampleRate * duration), context.sampleRate);
-  const random = seededRandom();
+  const offline = new OfflineAudioContext(2, Math.ceil(sampleRate * duration), sampleRate);
+  const random = seededRandom(241019);
   const mix = offline.createGain();
   const warmth = offline.createBiquadFilter();
   const dry = offline.createGain();
@@ -103,17 +132,17 @@ async function createAnimeLofiLoop(context: AudioContext) {
   const reverb = offline.createConvolver();
   const compressor = offline.createDynamicsCompressor();
 
-  mix.gain.value = 0.82;
-  warmth.type = "lowpass"; warmth.frequency.value = 5200; warmth.Q.value = 0.35;
-  dry.gain.value = 0.92; wet.gain.value = 0.18;
-  compressor.threshold.value = -17; compressor.knee.value = 22; compressor.ratio.value = 3.2;
-  compressor.attack.value = 0.018; compressor.release.value = 0.48;
+  mix.gain.value = 0.78;
+  warmth.type = "lowpass"; warmth.frequency.value = 7200; warmth.Q.value = 0.28;
+  dry.gain.value = 0.88; wet.gain.value = 0.34;
+  compressor.threshold.value = -19; compressor.knee.value = 26; compressor.ratio.value = 2.6;
+  compressor.attack.value = 0.025; compressor.release.value = 0.72;
 
-  const impulse = offline.createBuffer(2, Math.ceil(offline.sampleRate * 2.4), offline.sampleRate);
+  const impulse = offline.createBuffer(2, Math.ceil(offline.sampleRate * 4.2), offline.sampleRate);
   for (let channel = 0; channel < impulse.numberOfChannels; channel += 1) {
     const data = impulse.getChannelData(channel);
     for (let i = 0; i < data.length; i += 1) {
-      data[i] = (random() * 2 - 1) * (1 - i / data.length) ** 3.3;
+      data[i] = (random() * 2 - 1) * (1 - i / data.length) ** 2.7;
     }
   }
   reverb.buffer = impulse;
@@ -121,71 +150,72 @@ async function createAnimeLofiLoop(context: AudioContext) {
   dry.connect(compressor); wet.connect(compressor); compressor.connect(offline.destination);
 
   const progressions = [
-    { root: 48, chord: [60, 64, 67, 71, 74] },
-    { root: 40, chord: [59, 62, 64, 67, 71] },
-    { root: 45, chord: [57, 60, 64, 67, 71] },
-    { root: 41, chord: [57, 60, 64, 67, 69] },
-    { root: 50, chord: [57, 60, 64, 65, 69] },
-    { root: 43, chord: [59, 62, 65, 69, 71] },
-    { root: 48, chord: [60, 64, 67, 71, 74] },
-    { root: 40, chord: [56, 59, 62, 64, 69] },
-    { root: 45, chord: [57, 60, 64, 67, 71] },
-    { root: 50, chord: [57, 60, 64, 66, 71] },
-    { root: 43, chord: [59, 62, 66, 69, 74] },
-    { root: 48, chord: [60, 64, 67, 71, 74] },
-    { root: 41, chord: [57, 60, 64, 67, 69] },
-    { root: 40, chord: [55, 59, 62, 67, 71] },
-    { root: 50, chord: [57, 60, 64, 65, 69] },
-    { root: 43, chord: [59, 62, 65, 69, 74] },
+    { root: 36, chord: [48, 55, 60, 64, 71] },
+    { root: 43, chord: [50, 55, 59, 62, 67] },
+    { root: 45, chord: [52, 57, 60, 64, 71] },
+    { root: 41, chord: [48, 53, 57, 60, 64] },
+    { root: 38, chord: [45, 50, 53, 57, 64] },
+    { root: 45, chord: [48, 52, 57, 60, 64] },
+    { root: 41, chord: [48, 53, 57, 60, 64] },
+    { root: 43, chord: [50, 55, 60, 62, 67] },
+    { root: 36, chord: [48, 55, 60, 64, 71] },
+    { root: 40, chord: [47, 52, 55, 59, 64] },
+    { root: 45, chord: [52, 57, 60, 64, 71] },
+    { root: 41, chord: [48, 53, 57, 60, 67] },
+    { root: 38, chord: [45, 50, 53, 57, 64] },
+    { root: 41, chord: [48, 53, 57, 60, 69] },
+    { root: 43, chord: [50, 55, 59, 62, 69] },
+    { root: 36, chord: [48, 55, 60, 64, 71] },
   ];
   const melodies: Array<Array<number | null>> = [
-    [76, null, 79, 81, 83, null, 79, 76], [74, 76, 79, null, 76, 74, null, 71],
-    [72, 76, 79, 83, null, 81, 79, 76], [76, 74, 72, null, 69, 72, 74, null],
-    [69, 72, 76, null, 77, 76, 72, 69], [71, 74, 77, 81, null, 79, 77, 74],
-    [76, null, 79, 83, 86, 83, 81, null], [80, 83, 86, null, 83, 80, 76, null],
-    [76, 79, 83, null, 84, 83, 79, 76], [78, 81, 83, 86, null, 83, 81, 78],
-    [74, 78, 81, null, 86, 83, 81, 78], [76, null, 79, 81, 83, 86, 83, null],
-    [81, 79, 76, null, 72, 76, 79, 81], [79, 74, 71, null, 74, 79, 83, null],
-    [76, 77, 81, null, 84, 81, 77, 76], [74, 77, 81, 83, 86, null, 81, 74],
+    [null, null, 72, null, null, 76, null, 79], [null, 74, null, 79, null, null, 74, null],
+    [76, null, null, 79, null, 83, null, null], [72, null, 76, null, 79, null, null, 76],
+    [69, null, 72, 76, null, null, 81, null], [72, 76, null, 79, null, 84, null, 81],
+    [76, null, 79, 84, null, 88, 84, null], [79, null, 83, null, 86, 83, 79, null],
+    [84, null, 79, null, 76, null, 79, 83], [83, 79, null, 76, null, 71, 74, null],
+    [76, 79, 84, null, 83, 79, 76, null], [81, null, 84, 88, null, 84, 81, 79],
+    [77, 81, null, 84, 81, 77, 72, null], [81, null, 84, 88, 89, 88, 84, null],
+    [79, 83, 86, null, 91, 86, 83, 79], [84, null, 83, 79, 76, 72, null, 67],
   ];
   const noise = createNoiseBuffer(offline, 0.5, random);
   const vinyl = offline.createBufferSource();
   const vinylFilter = offline.createBiquadFilter();
   const vinylGain = offline.createGain();
   vinyl.buffer = createNoiseBuffer(offline, 2, random); vinyl.loop = true;
-  vinylFilter.type = "bandpass"; vinylFilter.frequency.value = 1900; vinylFilter.Q.value = 0.22;
-  vinylGain.gain.value = 0.012;
+  vinylFilter.type = "bandpass"; vinylFilter.frequency.value = 1600; vinylFilter.Q.value = 0.18;
+  vinylGain.gain.value = 0.006;
   vinyl.connect(vinylFilter); vinylFilter.connect(vinylGain); vinylGain.connect(mix);
   vinyl.start(0); vinyl.stop(duration);
 
   progressions.forEach(({ root, chord }, barIndex) => {
     const barStart = barIndex * barDuration;
+    const rise = 0.72 + barIndex / (bars * 3.2);
     chord.forEach((midi, noteIndex) => {
-      const strum = noteIndex * 0.018;
-      scheduleTone(offline, mix, NOTE(midi), barStart + strum, barDuration * 0.94, 0.032, "sine", (noteIndex - 2) * 0.16);
-      scheduleTone(offline, mix, NOTE(midi) * 2, barStart + strum, beat * 1.15, 0.008, "triangle", (2 - noteIndex) * 0.12);
+      const strum = noteIndex * 0.032;
+      schedulePad(offline, mix, NOTE(midi), barStart + strum, barDuration * 1.08, 0.027 * rise, (noteIndex - 2) * 0.19);
+      if (barIndex >= 8 && noteIndex > 1) {
+        schedulePad(offline, mix, NOTE(midi) * 2, barStart + strum + 0.08, barDuration, 0.0075 * rise, (2 - noteIndex) * 0.22);
+      }
     });
-    [0, 2, 3.5].forEach((offset, index) => {
-      if (index === 2 && barIndex % 4 !== 3) return;
-      scheduleTone(offline, mix, NOTE(root), barStart + offset * beat, beat * (index === 2 ? 0.42 : 0.82), 0.085, "sine", -0.04);
+    schedulePad(offline, mix, NOTE(root), barStart, barDuration * 1.06, 0.075 * rise, -0.05);
+    for (let step = 0; step < 8; step += 1) {
+      const arp = chord[[0, 2, 1, 3, 2, 4, 3, 1][step]] + 12;
+      scheduleTone(offline, mix, NOTE(arp), barStart + step * beat * 0.5, beat * 0.42, 0.019 * rise, "triangle", step % 2 === 0 ? -0.28 : 0.28);
+    }
+    [0, 2].forEach((offset) => {
+      scheduleTone(offline, mix, NOTE(root + 12), barStart + offset * beat, beat * 1.45, 0.052 * rise, "sine", -0.06);
     });
     melodies[barIndex].forEach((midi, step) => {
       if (midi === null) return;
-      const start = barStart + step * beat * 0.5 + (step % 3 === 0 ? 0.018 : 0);
-      const emphasis = step === 0 || step === 4 ? 1 : 0.76;
-      scheduleTone(offline, mix, NOTE(midi), start, beat * 0.43, 0.035 * emphasis, "triangle", step % 2 === 0 ? -0.22 : 0.22);
-      scheduleTone(offline, mix, NOTE(midi) * 2, start, beat * 0.3, 0.006 * emphasis, "sine", step % 2 === 0 ? 0.28 : -0.28);
+      const start = barStart + step * beat * 0.5;
+      const emphasis = step === 0 || step === 4 ? 1 : 0.82;
+      scheduleTone(offline, mix, NOTE(midi), start, beat * 0.82, 0.029 * emphasis * rise, "sine", step % 2 === 0 ? -0.24 : 0.24);
+      scheduleTone(offline, mix, NOTE(midi) * 2, start + 0.018, beat * 0.55, 0.0065 * emphasis, "triangle", step % 2 === 0 ? 0.32 : -0.32);
     });
-    [0, 2.5].forEach((offset) => scheduleKick(offline, mix, barStart + offset * beat, 0.23));
-    if (barIndex % 4 === 3) scheduleKick(offline, mix, barStart + 3.5 * beat, 0.14);
-    [1, 3].forEach((offset) => {
-      scheduleNoiseHit(offline, mix, noise, barStart + offset * beat, 0.24, 1700, 0.085);
-      scheduleTone(offline, mix, 184, barStart + offset * beat, 0.14, 0.018, "triangle", 0.08);
-    });
-    for (let step = 0; step < 8; step += 1) {
-      if ((barIndex + step) % 7 === 0) continue;
-      scheduleNoiseHit(offline, mix, noise, barStart + step * beat * 0.5 + (step % 2 ? 0.012 : 0), 0.055, 7600, step % 2 ? 0.022 : 0.015);
-    }
+    scheduleKick(offline, mix, barStart, 0.22 * rise);
+    if (barIndex >= 4) scheduleKick(offline, mix, barStart + 2 * beat, 0.13 * rise);
+    scheduleNoiseHit(offline, mix, noise, barStart + 0.04, beat * 0.78, 1150, 0.028 * rise);
+    [1.5, 3.5].forEach((offset) => scheduleNoiseHit(offline, mix, noise, barStart + offset * beat, 0.11, 6800, 0.014 * rise));
   });
 
   const rendered = await offline.startRendering();
@@ -194,7 +224,7 @@ async function createAnimeLofiLoop(context: AudioContext) {
     const data = rendered.getChannelData(channel);
     for (let i = 0; i < data.length; i += 1) peak = Math.max(peak, Math.abs(data[i]));
   }
-  const scale = Math.min(1.45, 0.78 / peak);
+  const scale = Math.min(1.6, 0.82 / peak);
   for (let channel = 0; channel < rendered.numberOfChannels; channel += 1) {
     const data = rendered.getChannelData(channel);
     for (let i = 0; i < data.length; i += 1) data[i] *= scale;
@@ -205,16 +235,42 @@ async function createAnimeLofiLoop(context: AudioContext) {
 function playInterfaceSound(context: AudioContext, destination: AudioNode, interactive: boolean) {
   if (context.state !== "running") return;
   const now = context.currentTime;
-  const base = interactive ? 620 : 430;
-  scheduleTone(context, destination, base, now, 0.075, interactive ? 0.038 : 0.022, "sine", -0.08);
-  scheduleTone(context, destination, base * 1.5, now + 0.018, 0.11, interactive ? 0.026 : 0.014, "triangle", 0.08);
+  const base = interactive ? 660 : 470;
+  scheduleTone(context, destination, base, now, 0.085, interactive ? 0.09 : 0.06, "sine", -0.08);
+  scheduleTone(context, destination, base * 1.5, now + 0.016, 0.14, interactive ? 0.06 : 0.04, "triangle", 0.08);
+}
+
+function startImmediateCosmicSwell(context: AudioContext, destination: AudioNode) {
+  const bus = context.createGain();
+  const filter = context.createBiquadFilter();
+  const now = context.currentTime;
+  bus.gain.setValueAtTime(0.0001, now);
+  bus.gain.exponentialRampToValueAtTime(0.58, now + 0.12);
+  filter.type = "lowpass"; filter.frequency.value = 2400; filter.Q.value = 0.35;
+  bus.connect(filter); filter.connect(destination);
+  const sources = [36, 48, 55, 60, 64].map((midi, index) => {
+    const oscillator = context.createOscillator();
+    const voice = context.createGain();
+    const panner = context.createStereoPanner();
+    oscillator.type = index < 2 ? "sine" : "triangle";
+    oscillator.frequency.value = NOTE(midi);
+    oscillator.detune.value = (index - 2) * 2.7;
+    voice.gain.value = index < 2 ? 0.07 : 0.022;
+    panner.pan.value = (index - 2) * 0.18;
+    oscillator.connect(voice); voice.connect(panner); panner.connect(bus);
+    oscillator.start(now);
+    return oscillator;
+  });
+  return { bus, sources };
 }
 
 export function KineticExperience() {
   const cursorRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<AudioRig | null>(null);
-  const startingAudioRef = useRef(false);
-  const [soundState, setSoundState] = useState<"off" | "loading" | "on">("off");
+  const soundtrackRef = useRef<Promise<AudioBuffer | null> | null>(null);
+  const soundtrackBufferRef = useRef<AudioBuffer | null>(null);
+  const audioGenerationRef = useRef(0);
+  const [soundState, setSoundState] = useState<"off" | "on">("off");
   const [scrollPercent, setScrollPercent] = useState(0);
   const [chapter, setChapter] = useState("ORIGIN");
 
@@ -252,7 +308,15 @@ export function KineticExperience() {
     };
   }, []);
 
-  useEffect(() => () => { if (audioRef.current) void audioRef.current.context.close(); }, []);
+  useEffect(() => {
+    soundtrackRef.current = createCosmicLofiLoop(44100)
+      .then((buffer) => { soundtrackBufferRef.current = buffer; return buffer; })
+      .catch(() => null);
+    return () => {
+      audioGenerationRef.current += 1;
+      if (audioRef.current) void audioRef.current.context.close();
+    };
+  }, []);
 
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
@@ -268,8 +332,8 @@ export function KineticExperience() {
   }, []);
 
   const toggleSound = async () => {
-    if (startingAudioRef.current) return;
     if (audioRef.current) {
+      audioGenerationRef.current += 1;
       const rig = audioRef.current; const now = rig.context.currentTime;
       rig.gain.gain.cancelScheduledValues(now); rig.gain.gain.setValueAtTime(rig.gain.gain.value, now);
       rig.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
@@ -278,32 +342,44 @@ export function KineticExperience() {
     }
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
-    startingAudioRef.current = true;
-    setSoundState("loading");
+    const generation = audioGenerationRef.current + 1;
+    audioGenerationRef.current = generation;
     const context: AudioContext = new AudioContextClass();
     try {
       await context.resume();
-      const soundtrack = await createAnimeLofiLoop(context);
       const master = context.createGain();
       const trackGain = context.createGain();
       const compressor = context.createDynamicsCompressor();
-      master.gain.setValueAtTime(0.0001, context.currentTime);
-      master.gain.exponentialRampToValueAtTime(0.76, context.currentTime + 1.5);
-      trackGain.gain.value = 0.92;
-      compressor.threshold.value = -14; compressor.knee.value = 18; compressor.ratio.value = 3;
+      master.gain.value = 0.84;
+      trackGain.gain.value = 0.0001;
+      compressor.threshold.value = -13; compressor.knee.value = 20; compressor.ratio.value = 3.2;
       compressor.attack.value = 0.015; compressor.release.value = 0.5;
       trackGain.connect(master); master.connect(compressor); compressor.connect(context.destination);
-      const lofiSource = context.createBufferSource();
-      lofiSource.buffer = soundtrack; lofiSource.loop = true; lofiSource.connect(trackGain); lofiSource.start();
-      const sources: AudioScheduledSourceNode[] = [lofiSource];
-      audioRef.current = { context, gain: master, sources };
+      const intro = startImmediateCosmicSwell(context, master);
+      const rig: AudioRig = { context, gain: master, sources: [...intro.sources] };
+      audioRef.current = rig;
       setSoundState("on");
       playInterfaceSound(context, master, true);
+
+      const soundtrack = soundtrackBufferRef.current
+        ?? await (soundtrackRef.current ?? createCosmicLofiLoop(context.sampleRate));
+      if (!soundtrack || audioRef.current !== rig || audioGenerationRef.current !== generation) return;
+      const lofiSource = context.createBufferSource();
+      lofiSource.buffer = soundtrack; lofiSource.loop = true; lofiSource.connect(trackGain);
+      const now = context.currentTime;
+      trackGain.gain.cancelScheduledValues(now);
+      trackGain.gain.setValueAtTime(0.18, now);
+      trackGain.gain.exponentialRampToValueAtTime(0.96, now + 1.2);
+      intro.bus.gain.cancelScheduledValues(now);
+      intro.bus.gain.setValueAtTime(intro.bus.gain.value, now);
+      intro.bus.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+      lofiSource.start(now);
+      rig.sources.push(lofiSource);
+      intro.sources.forEach((source) => { try { source.stop(now + 1.3); } catch { /* already stopped */ } });
     } catch {
       await context.close();
+      audioRef.current = null;
       setSoundState("off");
-    } finally {
-      startingAudioRef.current = false;
     }
   };
 
@@ -324,8 +400,8 @@ export function KineticExperience() {
       </div>
       <div ref={cursorRef} className="kinetic-cursor" aria-hidden="true"><span /></div>
       <div className="renderer-badge" aria-label="Interactive particle field active"><span className="renderer-dot" />PARTICLES</div>
-      <button className={`sound-toggle ${soundState === "on" ? "is-on" : ""}`} type="button" aria-label={soundState === "on" ? "Turn lo-fi soundtrack off" : "Turn lo-fi soundtrack on"} aria-pressed={soundState === "on"} disabled={soundState === "loading"} onClick={() => void toggleSound()} title="Evolving lo-fi soundtrack and interface sounds">
-        <span className="sound-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>LO-FI: {soundState === "loading" ? "···" : soundState.toUpperCase()}</span>
+      <button className={`sound-toggle ${soundState === "on" ? "is-on" : ""}`} type="button" aria-label={soundState === "on" ? "Turn cinematic soundtrack off" : "Turn cinematic soundtrack on"} aria-pressed={soundState === "on"} onClick={() => void toggleSound()} title="Warm cosmic soundtrack and interface sounds">
+        <span className="sound-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>COSMIC: {soundState.toUpperCase()}</span>
       </button>
       <div className="experience-progress" aria-hidden="true">
         <span>{String(scrollPercent).padStart(2, "0")}</span><span className="progress-rail"><i style={{ height: `${scrollPercent}%` }} /></span><strong>{chapter}</strong>
