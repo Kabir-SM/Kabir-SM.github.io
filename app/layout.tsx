@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { KineticExperience } from "./KineticExperience";
 import "./globals.css";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kabir-marwaha-portfolio.hotwheelers11.chatgpt.site";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -14,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kabir-marwaha-portfolio.hotwheelers11.chatgpt.site"),
+  metadataBase: new URL(siteUrl),
   title: "Kabir Marwaha Portfolio",
   description:
     "An interactive WebGPU and WebGL portfolio for Kabir Marwaha, a New York-based computer science and AI student building automation, data, and systems software.",

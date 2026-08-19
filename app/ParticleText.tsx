@@ -68,8 +68,9 @@ export default function ParticleText({
     const canvas = canvasRef.current;
     if (!host || !canvas) return;
 
-    const context = canvas.getContext("2d");
-    if (!context) return;
+    const maybeContext = canvas.getContext("2d");
+    if (!maybeContext) return;
+    const context: CanvasRenderingContext2D = maybeContext;
 
     let particles: Particle[] = [];
     let frame = 0;
