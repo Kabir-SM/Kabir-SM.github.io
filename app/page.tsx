@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { KineticExperience } from "./KineticExperience";
 import ParticleText from "./ParticleText";
 import { ContactModal, ContactTrigger } from "./ContactModal";
@@ -623,7 +624,13 @@ export default function Home() {
             <span className="brand-mark">KM</span>
             <span>Kabir Marwaha</span>
           </a>
-          <p>Built around useful work. © {new Date().getFullYear()}</p>
+          <div className="footer-signature">
+            <p>© 2026 Kabir Marwaha. Built with intention.</p>
+            <nav className="footer-legal-links" aria-label="Legal information">
+              <Link href="/privacy">Privacy Policy</Link>
+              <Link href="/terms">Terms of Use</Link>
+            </nav>
+          </div>
           <a href="#top" data-cursor="TOP">Back to top ↑</a>
         </footer>
         <ContactModal />

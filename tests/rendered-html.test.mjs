@@ -34,9 +34,26 @@ test("server-renders the finished portfolio", async () => {
   assert.match(html, /aria-label="Start ambient soundtrack"/i);
   assert.match(html, /aria-label="Jump to a portfolio section"/i);
   assert.match(html, /Projects &amp; case studies/i);
+  assert.match(html, /© 2026 Kabir Marwaha\. Built with intention\./i);
+  assert.match(html, /href="\/privacy"[^>]*>Privacy Policy/i);
+  assert.match(html, /href="\/terms"[^>]*>Terms of Use/i);
   assert.doesNotMatch(html, /locations automated|duplicate lines removed|workflow improvement/i);
   assert.doesNotMatch(html, /renderer-badge|particle field online/i);
   assert.doesNotMatch(html, /Your site is taking shape|Building your site|codex-preview/i);
+});
+
+test("publishes complete legal pages", async () => {
+  const [privacyResponse, termsResponse] = await Promise.all([render("/privacy"), render("/terms")]);
+  assert.equal(privacyResponse.status, 200);
+  assert.equal(termsResponse.status, 200);
+
+  const [privacy, terms] = await Promise.all([privacyResponse.text(), termsResponse.text()]);
+  assert.match(privacy, /<title>Privacy Policy \| Kabir Marwaha<\/title>/i);
+  assert.match(privacy, /Nothing entered in the contact form is uploaded to or stored by this portfolio/i);
+  assert.match(privacy, /Kabir_1_6@icloud\.com/i);
+  assert.match(terms, /<title>Terms of Use \| Kabir Marwaha<\/title>/i);
+  assert.match(terms, /Portfolio purpose/i);
+  assert.match(terms, /Kabir_1_6@icloud\.com/i);
 });
 
 test("attaches restrictive browser security headers", async () => {
