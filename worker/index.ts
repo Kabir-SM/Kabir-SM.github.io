@@ -36,6 +36,9 @@ const CONTENT_SECURITY_POLICY = [
   "upgrade-insecure-requests",
 ].join("; ");
 
+const LEGACY_PORTFOLIO_HOST = "kabir-marwaha-portfolio.hotwheelers11.chatgpt.site";
+const PRIMARY_PORTFOLIO_ORIGIN = "https://kabir-sm.github.io";
+
 function withSecurityHeaders(response: Response): Response {
   const headers = new Headers(response.headers);
   headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
@@ -58,6 +61,11 @@ function withSecurityHeaders(response: Response): Response {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (url.hostname === LEGACY_PORTFOLIO_HOST) {
+      const destination = new URL(`${url.pathname}${url.search}`, PRIMARY_PORTFOLIO_ORIGIN);
+      return withSecurityHeaders(Response.redirect(destination, 308));
+    }
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
