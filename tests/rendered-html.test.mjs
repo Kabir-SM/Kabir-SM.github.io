@@ -32,6 +32,9 @@ test("server-renders the finished portfolio", async () => {
   assert.match(html, /Computer Science \+ AI \/ Open to opportunities/i);
   assert.match(html, /SOUND:\s*(?:<!-- -->)?START/i);
   assert.match(html, /aria-label="Start ambient soundtrack"/i);
+  assert.match(html, /aria-label="Jump to a portfolio section"/i);
+  assert.match(html, /Projects &amp; case studies/i);
+  assert.doesNotMatch(html, /locations automated|duplicate lines removed|workflow improvement/i);
   assert.doesNotMatch(html, /renderer-badge|particle field online/i);
   assert.doesNotMatch(html, /Your site is taking shape|Building your site|codex-preview/i);
 });

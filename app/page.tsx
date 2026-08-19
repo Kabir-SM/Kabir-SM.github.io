@@ -284,20 +284,32 @@ export default function Home() {
                   View resume <span aria-hidden="true">↗</span>
                 </a>
               </div>
-              <dl className="hero-metrics" aria-label="Selected results">
-                <div>
-                  <dt>3</dt>
-                  <dd>locations automated</dd>
-                </div>
-                <div>
-                  <dt>400+</dt>
-                  <dd>duplicate lines removed</dd>
-                </div>
-                <div>
-                  <dt>40%</dt>
-                  <dd>workflow improvement</dd>
-                </div>
-              </dl>
+              <nav className="hero-section-nav" aria-label="Jump to a portfolio section">
+                <a href="#work" data-cursor="VIEW WORK">
+                  <span>01</span>
+                  <strong>Work</strong>
+                  <small>Projects &amp; case studies</small>
+                  <i aria-hidden="true">↓</i>
+                </a>
+                <a href="#experience" data-cursor="VIEW ROLES">
+                  <span>02</span>
+                  <strong>Experience</strong>
+                  <small>Roles &amp; impact</small>
+                  <i aria-hidden="true">↓</i>
+                </a>
+                <a href="#about" data-cursor="ABOUT KABIR">
+                  <span>03</span>
+                  <strong>About</strong>
+                  <small>Skills &amp; background</small>
+                  <i aria-hidden="true">↓</i>
+                </a>
+                <a href="#contact" data-cursor="CONTACT">
+                  <span>04</span>
+                  <strong>Contact</strong>
+                  <small>Start a conversation</small>
+                  <i aria-hidden="true">↓</i>
+                </a>
+              </nav>
             </div>
 
             <div className="badge-stage" aria-label="Kabir Marwaha profile card">
