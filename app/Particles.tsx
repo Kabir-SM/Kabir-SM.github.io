@@ -48,15 +48,25 @@ export default function Particles({
     let frame = 0;
     let angle = 0;
     let lastDraw = 0;
+    let contextLost = false;
     let documentVisible = !document.hidden;
     const pointer = { x: 0, y: 0, active: false };
     let particles: Particle[] = [];
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const mobileViewport = window.matchMedia("(max-width: 760px)").matches;
+    const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
     const device = navigator as Navigator & { deviceMemory?: number };
-    const lowPower = window.matchMedia("(max-width: 760px)").matches
+    const lowPower = mobileViewport
       || (device.hardwareConcurrency ?? 8) <= 4
       || (device.deviceMemory ?? 8) <= 4;
-    const effectiveParticleCount = lowPower ? Math.min(particleCount, 420) : particleCount;
+    const effectiveParticleCount = mobileViewport
+      ? Math.min(particleCount, 160)
+      : lowPower
+        ? Math.min(particleCount, 360)
+        : particleCount;
+    const frameInterval = reducedMotion ? 100 : mobileViewport ? 1000 / 30 : lowPower ? 1000 / 45 : 0;
+    const allowRotation = !disableRotation && !reducedMotion && !mobileViewport;
+    const allowPointerMotion = moveParticlesOnHover && !coarsePointer && !mobileViewport;
 
     const makeParticle = (): Particle => {
       const direction = Math.random() * Math.PI * 2;
@@ -77,16 +87,31 @@ export default function Particles({
       const bounds = canvas.getBoundingClientRect();
       const requestedRatio = Number(pixelRatio);
       const dpr = Number.isFinite(requestedRatio) ? Math.min(2, Math.max(0.5, requestedRatio)) : 1;
-      const nextWidth = Math.max(1, bounds.width);
-      const nextHeight = Math.max(1, bounds.height);
+      const nextWidth = Math.max(1, Math.round(bounds.width));
+      const nextHeight = Math.max(1, Math.round(bounds.height));
+      // Mobile browser chrome changes the visual viewport height while scrolling.
+      // Keep the backing buffer stable for height-only changes so particles do not
+      // get recreated mid-scroll; a width change still handles rotation/resizing.
+      if (mobileViewport && currentDpr > 0 && Math.abs(nextWidth - width) < 1) return;
       if (Math.abs(nextWidth - width) < 0.5 && Math.abs(nextHeight - height) < 0.5 && currentDpr === dpr && particles.length) return;
+      const previousWidth = width;
+      const previousHeight = height;
       width = nextWidth;
       height = nextHeight;
       currentDpr = dpr;
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
-      particles = Array.from({ length: effectiveParticleCount }, makeParticle);
+      if (particles.length && previousWidth > 1 && previousHeight > 1) {
+        const scaleX = width / previousWidth;
+        const scaleY = height / previousHeight;
+        particles.forEach((particle) => {
+          particle.x *= scaleX;
+          particle.y *= scaleY;
+        });
+      } else {
+        particles = Array.from({ length: effectiveParticleCount }, makeParticle);
+      }
     };
 
     const onPointerMove = (event: PointerEvent) => {
@@ -97,7 +122,7 @@ export default function Particles({
     const onPointerLeave = () => { pointer.active = false; };
 
     const draw = (now: number) => {
-      if (!documentVisible || (reducedMotion && now - lastDraw < 100)) {
+      if (contextLost || !documentVisible || (frameInterval > 0 && now - lastDraw < frameInterval)) {
         frame = requestAnimationFrame(draw);
         return;
       }
@@ -105,7 +130,7 @@ export default function Particles({
       context.clearRect(0, 0, width, height);
       const audioLevel = Math.min(1, Math.max(0, Number(document.documentElement.style.getPropertyValue("--audio-level")) || 0));
       const audioMotion = 1 + audioLevel * 1.35;
-      if (!disableRotation && !reducedMotion) angle += speed * 0.00045 * audioMotion;
+      if (allowRotation) angle += speed * 0.00045 * audioMotion;
       const cosine = Math.cos(angle);
       const sine = Math.sin(angle);
       const centerX = width / 2;
@@ -127,14 +152,14 @@ export default function Particles({
 
         let drawX = particle.x;
         let drawY = particle.y;
-        if (!disableRotation) {
+        if (allowRotation) {
           const offsetX = particle.x - centerX;
           const offsetY = particle.y - centerY;
           drawX = centerX + offsetX * cosine - offsetY * sine;
           drawY = centerY + offsetX * sine + offsetY * cosine;
         }
 
-        if (moveParticlesOnHover && pointer.active) {
+        if (allowPointerMotion && pointer.active) {
           const deltaX = drawX - pointer.x;
           const deltaY = drawY - pointer.y;
           const distance = Math.hypot(deltaX, deltaY);
@@ -145,11 +170,16 @@ export default function Particles({
           }
         }
 
-        context.beginPath();
         context.fillStyle = particle.color;
         context.globalAlpha = alphaParticles ? 0.26 + particle.depth * 0.56 : Math.min(1, 0.78 + audioLevel * 0.2);
-        context.arc(drawX, drawY, particle.size * particle.depth * (1 + audioLevel * 0.32), 0, Math.PI * 2);
-        context.fill();
+        const drawSize = particle.size * particle.depth * (1 + audioLevel * 0.32);
+        if (mobileViewport) {
+          context.fillRect(drawX, drawY, Math.max(1, drawSize), Math.max(1, drawSize));
+        } else {
+          context.beginPath();
+          context.arc(drawX, drawY, drawSize, 0, Math.PI * 2);
+          context.fill();
+        }
       }
       context.globalAlpha = 1;
       context.shadowBlur = 0;
@@ -158,9 +188,22 @@ export default function Particles({
 
     const resizeObserver = new ResizeObserver(resize);
     const onVisibilityChange = () => { documentVisible = !document.hidden; };
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      contextLost = true;
+    };
+    const onContextRestored = () => {
+      contextLost = false;
+      currentDpr = 0;
+      resize();
+    };
     resizeObserver.observe(canvas);
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
-    window.addEventListener("pointerleave", onPointerLeave);
+    if (allowPointerMotion) {
+      window.addEventListener("pointermove", onPointerMove, { passive: true });
+      window.addEventListener("pointerleave", onPointerLeave);
+    }
+    canvas.addEventListener("contextlost", onContextLost);
+    canvas.addEventListener("contextrestored", onContextRestored);
     document.addEventListener("visibilitychange", onVisibilityChange);
     resize();
     frame = requestAnimationFrame(draw);
@@ -168,8 +211,12 @@ export default function Particles({
     return () => {
       cancelAnimationFrame(frame);
       resizeObserver.disconnect();
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerleave", onPointerLeave);
+      if (allowPointerMotion) {
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerleave", onPointerLeave);
+      }
+      canvas.removeEventListener("contextlost", onContextLost);
+      canvas.removeEventListener("contextrestored", onContextRestored);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [alphaParticles, disableRotation, moveParticlesOnHover, particleBaseSize, particleColors, particleCount, particleSpread, pixelRatio, speed]);

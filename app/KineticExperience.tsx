@@ -242,7 +242,14 @@ function startAudioVisuals(analyser: AnalyserNode) {
   const frequencies = new Uint8Array(analyser.frequencyBinCount);
   let frame = 0;
   let smoothed = 0;
-  const draw = () => {
+  let lastUpdate = 0;
+  const frameInterval = window.matchMedia("(max-width: 760px)").matches ? 1000 / 24 : 0;
+  const draw = (now: number) => {
+    if (frameInterval > 0 && now - lastUpdate < frameInterval) {
+      frame = requestAnimationFrame(draw);
+      return;
+    }
+    lastUpdate = now;
     analyser.getByteFrequencyData(frequencies);
     let energy = 0;
     const bins = Math.min(42, frequencies.length);
@@ -274,6 +281,8 @@ export function KineticExperience() {
     let scrollFrame = 0;
     let pointerClientX = 0;
     let pointerClientY = 0;
+    const trackPointer = window.matchMedia("(pointer: fine) and (min-width: 761px)").matches;
+    const trackScrollProgress = window.matchMedia("(min-width: 761px)").matches;
     const commitPointer = () => {
       pointerFrame = 0;
       const pointerX = (pointerClientX / window.innerWidth) * 2 - 1;
@@ -301,9 +310,11 @@ export function KineticExperience() {
       const maximum = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
       const progress = Math.min(1, Math.max(0, window.scrollY / maximum));
       document.documentElement.style.setProperty("--scroll-progress", progress.toFixed(4));
-      setScrollPercent(Math.round(progress * 100));
-      const labels = ["ORIGIN", "WORK", "EXPERIENCE", "ABOUT", "CONTACT"];
-      setChapter(labels[Math.min(labels.length - 1, Math.floor(progress * labels.length))]);
+      if (trackScrollProgress) {
+        setScrollPercent(Math.round(progress * 100));
+        const labels = ["ORIGIN", "WORK", "EXPERIENCE", "ABOUT", "CONTACT"];
+        setChapter(labels[Math.min(labels.length - 1, Math.floor(progress * labels.length))]);
+      }
     };
     const onScroll = () => { if (!scrollFrame) scrollFrame = requestAnimationFrame(commitScroll); };
     const revealObserver = new IntersectionObserver(
@@ -311,17 +322,23 @@ export function KineticExperience() {
       { threshold: 0.08 },
     );
     document.querySelectorAll(".section, .contact-section").forEach((node) => revealObserver.observe(node));
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
-    document.addEventListener("pointerover", onPointerOver, { passive: true });
-    window.addEventListener("scroll", onScroll, { passive: true });
-    commitScroll();
+    if (trackPointer) {
+      window.addEventListener("pointermove", onPointerMove, { passive: true });
+      document.addEventListener("pointerover", onPointerOver, { passive: true });
+    }
+    if (trackScrollProgress) {
+      window.addEventListener("scroll", onScroll, { passive: true });
+      commitScroll();
+    }
     return () => {
       cancelAnimationFrame(pointerFrame);
       cancelAnimationFrame(scrollFrame);
       revealObserver.disconnect();
-      window.removeEventListener("pointermove", onPointerMove);
-      document.removeEventListener("pointerover", onPointerOver);
-      window.removeEventListener("scroll", onScroll);
+      if (trackPointer) {
+        window.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerover", onPointerOver);
+      }
+      if (trackScrollProgress) window.removeEventListener("scroll", onScroll);
       document.documentElement.style.removeProperty("--pointer-x");
       document.documentElement.style.removeProperty("--pointer-y");
       document.documentElement.style.removeProperty("--scroll-progress");

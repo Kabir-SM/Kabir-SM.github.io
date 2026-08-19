@@ -2754,7 +2754,26 @@ summary {
 }
 
 @media (max-width: 760px) {
-  .particles-canvas { opacity: 0.58; }
+  .particles-background {
+    top: 0;
+    right: auto;
+    bottom: auto;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100lvh;
+    min-height: 100svh;
+    contain: strict;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .particles-canvas {
+    opacity: 0.58;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
   .particles-background::after {
     background: rgba(5, 6, 6, 0.46);
   }
@@ -3195,4 +3214,33 @@ summary {
   .project-dialog[open],
   .terminal-dialog[open],
   .shortcuts-dialog[open] { animation: none; }
+}
+
+/* Final mobile compositor guardrails: keep these after all component styles. */
+@media (max-width: 760px) {
+  .site-header,
+  .sound-toggle,
+  .profile-badge,
+  .project-card,
+  .education-card,
+  .ask-kabir-launcher,
+  .shortcuts-launcher,
+  .contact-dialog,
+  .project-dialog,
+  .terminal-dialog,
+  .shortcuts-dialog,
+  .contact-dialog::backdrop,
+  .project-dialog::backdrop,
+  .terminal-dialog::backdrop,
+  .shortcuts-dialog::backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .site-header { background: rgba(9, 10, 9, 0.94); }
+  .sound-toggle,
+  .ask-kabir-launcher,
+  .shortcuts-launcher { background: rgba(8, 10, 8, 0.94); }
+  .project-card,
+  .education-card { background-color: rgba(17, 19, 17, 0.94); }
 }

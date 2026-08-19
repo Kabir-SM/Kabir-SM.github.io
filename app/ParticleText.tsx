@@ -82,14 +82,19 @@ export default function ParticleText({
     let hovered = false;
     let localPulse = 0;
     let lastTime = performance.now();
+    let lastDraw = 0;
     let bornAt = lastTime;
     const pointer = { x: -10000, y: -10000, active: false };
     const pulseOrigin = { x: -10000, y: -10000 };
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const mobileViewport = window.matchMedia("(max-width: 760px)").matches;
+    const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
     const device = navigator as Navigator & { deviceMemory?: number };
-    const lowPower = window.matchMedia("(max-width: 760px)").matches
+    const lowPower = mobileViewport
       || (device.hardwareConcurrency ?? 8) <= 4
       || (device.deviceMemory ?? 8) <= 4;
+    const frameInterval = reduceMotion ? 100 : mobileViewport ? 1000 / 30 : lowPower ? 1000 / 45 : 0;
+    const allowPointerMotion = !coarsePointer && !mobileViewport;
 
     const buildParticles = () => {
       if (disposed) return;
@@ -137,7 +142,7 @@ export default function ParticleText({
           if (pixels[(y * width + x) * 4 + 3] > 100) points.push({ x, y });
         }
       }
-      const particleLimit = reduceMotion ? 2800 : lowPower ? 4600 : 8500;
+      const particleLimit = reduceMotion ? 1200 : mobileViewport ? 1600 : lowPower ? 3600 : 8500;
       const keepEvery = Math.max(1, Math.ceil(points.length / particleLimit));
       particles = points.filter((_, index) => index % keepEvery === 0).map((point, index) => {
         const seed = pseudoRandom(index + text.length * 17);
@@ -188,6 +193,11 @@ export default function ParticleText({
 
     function draw(now: number) {
       frame = 0;
+      if (frameInterval > 0 && now - lastDraw < frameInterval) {
+        queueDraw();
+        return;
+      }
+      lastDraw = now;
       const delta = Math.min(34, now - lastTime);
       lastTime = now;
       if (visible && particles.length) {
@@ -251,7 +261,7 @@ export default function ParticleText({
         basePoints.forEach((particle) => context.fillRect(particle.x, particle.y, particleSize, particleSize));
         context.globalAlpha = 1;
         context.fillStyle = highlightColor;
-        if (glow) {
+        if (glow && !lowPower) {
           context.shadowColor = highlightColor;
           context.shadowBlur = 9;
         }
@@ -279,10 +289,12 @@ export default function ParticleText({
     };
     resizeObserver.observe(host);
     visibilityObserver.observe(host);
-    host.addEventListener("pointerenter", onPointerEnter);
-    host.addEventListener("pointermove", onPointerMove);
-    host.addEventListener("pointerleave", onPointerLeave);
-    host.addEventListener("pointerdown", onPointerDown);
+    if (allowPointerMotion) {
+      host.addEventListener("pointerenter", onPointerEnter);
+      host.addEventListener("pointermove", onPointerMove);
+      host.addEventListener("pointerleave", onPointerLeave);
+      host.addEventListener("pointerdown", onPointerDown);
+    }
     document.addEventListener("visibilitychange", onVisibilityChange);
     void document.fonts?.ready.then(() => { if (!disposed) buildParticles(); });
     buildParticles();
@@ -293,10 +305,12 @@ export default function ParticleText({
       cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
-      host.removeEventListener("pointerenter", onPointerEnter);
-      host.removeEventListener("pointermove", onPointerMove);
-      host.removeEventListener("pointerleave", onPointerLeave);
-      host.removeEventListener("pointerdown", onPointerDown);
+      if (allowPointerMotion) {
+        host.removeEventListener("pointerenter", onPointerEnter);
+        host.removeEventListener("pointermove", onPointerMove);
+        host.removeEventListener("pointerleave", onPointerLeave);
+        host.removeEventListener("pointerdown", onPointerDown);
+      }
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [color, density, fontFamily, fontWeight, gatherDuration, glow, highlightColor, idleDrift, particleSize, pointerRepel, repelRadius, scatter, stagger, text, trigger]);
