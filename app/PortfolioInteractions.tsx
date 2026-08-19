@@ -152,7 +152,7 @@ export function PortfolioInteractions({ projects }: { projects: ProjectCase[] })
               </ul>
               <div>
                 <button type="button" className="button button-primary" onClick={() => { closeDialog(projectDialogRef.current); window.dispatchEvent(new Event("open-kabir-contact")); }}>
-                  Request a walkthrough <span aria-hidden="true">↗</span>
+                  Ask about this project <span aria-hidden="true">?</span>
                 </button>
                 <a className="button button-secondary" href="/Kabir_Marwaha_Resume_2026.pdf" target="_blank" rel="noreferrer">View résumé <span aria-hidden="true">↗</span></a>
               </div>

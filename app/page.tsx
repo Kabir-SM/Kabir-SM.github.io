@@ -241,7 +241,7 @@ export default function Home() {
             <div className="hero-copy">
               <div className="availability-pill">
                 <span className="status-dot" aria-hidden="true" />
-                CS + AI / particle field online
+                Computer Science + AI / Open to opportunities
               </div>
               <p className="hero-kicker">Software engineering / automation / data</p>
               <h1 className="particle-heading hero-particle-heading">
@@ -269,7 +269,7 @@ export default function Home() {
                 automation, AI integration, and practical tools that make complex work feel
                 simple.
               </p>
-              <p className="hero-system-note">A quiet field of interactive particles moves behind the work without competing with it.</p>
+              <p className="hero-system-note">Building reliable software where automation, data, and AI meet real operational needs.</p>
               <div className="hero-actions">
                 <a className="button button-primary" href="#work" data-cursor="EXPLORE">
                   Explore my work <span aria-hidden="true">↓</span>
@@ -590,17 +590,17 @@ export default function Home() {
               <a href="mailto:Kabir_1_6@icloud.com" data-cursor="EMAIL">
                 <span>Email</span>
                 <strong>Kabir_1_6@icloud.com</strong>
-                <i aria-hidden="true">↗</i>
+                <i aria-hidden="true">✉️</i>
               </a>
               <a href="tel:+19175133731" data-cursor="CALL">
                 <span>Phone</span>
                 <strong>(917) 513-3731</strong>
-                <i aria-hidden="true">↗</i>
+                <i aria-hidden="true">📞</i>
               </a>
               <a href="/Kabir_Marwaha_Resume_2026.pdf" target="_blank" rel="noreferrer" data-cursor="OPEN PDF">
                 <span>Resume</span>
                 <strong>View PDF</strong>
-                <i aria-hidden="true">↗</i>
+                <i aria-hidden="true">📄</i>
               </a>
             </div>
           </section>

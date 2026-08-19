@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Particles from "./Particles";
 
 type AudioRig = { context: AudioContext; gain: GainNode; sources: AudioScheduledSourceNode[]; stopVisuals: () => void };
@@ -291,7 +291,7 @@ export function KineticExperience() {
   const soundtrackRef = useRef<Promise<AudioBuffer | null> | null>(null);
   const soundtrackBufferRef = useRef<AudioBuffer | null>(null);
   const audioGenerationRef = useRef(0);
-  const [soundState, setSoundState] = useState<"off" | "on">("off");
+  const [soundState, setSoundState] = useState<"armed" | "off" | "on">("armed");
   const [scrollPercent, setScrollPercent] = useState(0);
   const [chapter, setChapter] = useState("ORIGIN");
 
@@ -401,7 +401,7 @@ export function KineticExperience() {
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [soundState]);
 
-  const toggleSound = async () => {
+  const toggleSound = useCallback(async () => {
     if (audioRef.current) {
       audioGenerationRef.current += 1;
       const rig = audioRef.current; const now = rig.context.currentTime;
@@ -457,7 +457,28 @@ export function KineticExperience() {
       audioRef.current = null;
       setSoundState("off");
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (soundState !== "armed") return;
+    let starting = false;
+    const startOnFirstInteraction = (event: PointerEvent | KeyboardEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest(".sound-toggle")) return;
+      if (event instanceof KeyboardEvent && event.key.toLowerCase() === "m") return;
+      if (starting) return;
+      starting = true;
+      void toggleSound();
+    };
+    document.addEventListener("pointerdown", startOnFirstInteraction, { capture: true });
+    document.addEventListener("keydown", startOnFirstInteraction, { capture: true });
+    return () => {
+      document.removeEventListener("pointerdown", startOnFirstInteraction, { capture: true });
+      document.removeEventListener("keydown", startOnFirstInteraction, { capture: true });
+    };
+  }, [soundState, toggleSound]);
+
+  const soundEnabled = soundState !== "off";
 
   return (
     <div className="kinetic-experience">
@@ -475,14 +496,13 @@ export function KineticExperience() {
         />
       </div>
       <div ref={cursorRef} className="kinetic-cursor" aria-hidden="true"><span /></div>
-      <div className="renderer-badge" aria-label="Interactive particle field active"><span className="renderer-dot" />PARTICLES</div>
-      <button className={`sound-toggle ${soundState === "on" ? "is-on" : ""}`} type="button" aria-label={soundState === "on" ? "Turn cinematic soundtrack off" : "Turn cinematic soundtrack on"} aria-pressed={soundState === "on"} onClick={() => void toggleSound()} title="Warm cosmic soundtrack and interface sounds">
-        <span className="sound-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>COSMIC: {soundState.toUpperCase()}</span>
+      <button className={`sound-toggle ${soundEnabled ? "is-on" : ""}`} type="button" aria-label={soundEnabled ? "Turn ambient soundtrack off" : "Turn ambient soundtrack on"} aria-pressed={soundEnabled} onClick={() => { if (soundState === "armed") setSoundState("off"); else void toggleSound(); }} title="Ambient soundtrack and interface sounds">
+        <span className="sound-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>SOUND: {soundEnabled ? "ON" : "OFF"}</span>
       </button>
       <div className="experience-progress" aria-hidden="true">
         <span>{String(scrollPercent).padStart(2, "0")}</span><span className="progress-rail"><i style={{ height: `${scrollPercent}%` }} /></span><strong>{chapter}</strong>
       </div>
-      <div className="interaction-guide" aria-hidden="true">MOVE / SCROLL TO SHIFT THE PARTICLE FIELD</div>
+      <div className="interaction-guide" aria-hidden="true">MOVE / SCROLL TO EXPLORE</div>
     </div>
   );
 }

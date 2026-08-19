@@ -29,6 +29,9 @@ test("server-renders the finished portfolio", async () => {
   assert.match(html, /Open Absence Report Automation case study/i);
   assert.match(html, /Move through the portfolio/i);
   assert.match(html, /Kabir_1_6@icloud\.com/i);
+  assert.match(html, /Computer Science \+ AI \/ Open to opportunities/i);
+  assert.match(html, /SOUND:\s*(?:<!-- -->)?ON/i);
+  assert.doesNotMatch(html, /renderer-badge|particle field online/i);
   assert.doesNotMatch(html, /Your site is taking shape|Building your site|codex-preview/i);
 });
 
