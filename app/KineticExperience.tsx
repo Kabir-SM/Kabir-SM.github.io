@@ -418,6 +418,11 @@ export function KineticExperience() {
     const context: AudioContext = new AudioContextClass();
     try {
       await context.resume();
+      if (context.state !== "running") {
+        await context.close();
+        setSoundState("armed");
+        return;
+      }
       const master = context.createGain();
       const trackGain = context.createGain();
       const analyser = context.createAnalyser();
@@ -462,7 +467,7 @@ export function KineticExperience() {
   useEffect(() => {
     if (soundState !== "armed") return;
     let starting = false;
-    const startOnFirstInteraction = (event: PointerEvent | KeyboardEvent) => {
+    const startOnFirstInteraction = (event: MouseEvent | KeyboardEvent) => {
       const target = event.target instanceof Element ? event.target : null;
       if (target?.closest(".sound-toggle")) return;
       if (event instanceof KeyboardEvent && event.key.toLowerCase() === "m") return;
@@ -470,15 +475,16 @@ export function KineticExperience() {
       starting = true;
       void toggleSound();
     };
-    document.addEventListener("pointerdown", startOnFirstInteraction, { capture: true });
+    document.addEventListener("click", startOnFirstInteraction, { capture: true });
     document.addEventListener("keydown", startOnFirstInteraction, { capture: true });
     return () => {
-      document.removeEventListener("pointerdown", startOnFirstInteraction, { capture: true });
+      document.removeEventListener("click", startOnFirstInteraction, { capture: true });
       document.removeEventListener("keydown", startOnFirstInteraction, { capture: true });
     };
   }, [soundState, toggleSound]);
 
-  const soundEnabled = soundState !== "off";
+  const soundOn = soundState === "on";
+  const soundLabel = soundState === "armed" ? "START" : soundState.toUpperCase();
 
   return (
     <div className="kinetic-experience">
@@ -496,8 +502,8 @@ export function KineticExperience() {
         />
       </div>
       <div ref={cursorRef} className="kinetic-cursor" aria-hidden="true"><span /></div>
-      <button className={`sound-toggle ${soundEnabled ? "is-on" : ""}`} type="button" aria-label={soundEnabled ? "Turn ambient soundtrack off" : "Turn ambient soundtrack on"} aria-pressed={soundEnabled} onClick={() => { if (soundState === "armed") setSoundState("off"); else void toggleSound(); }} title="Ambient soundtrack and interface sounds">
-        <span className="sound-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>SOUND: {soundEnabled ? "ON" : "OFF"}</span>
+      <button className={`sound-toggle ${soundOn ? "is-on" : ""}`} type="button" aria-label={soundState === "armed" ? "Start ambient soundtrack" : soundOn ? "Turn ambient soundtrack off" : "Turn ambient soundtrack on"} aria-pressed={soundOn} onClick={() => void toggleSound()} title="Ambient soundtrack and interface sounds">
+        <span className="sound-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>SOUND: {soundLabel}</span>
       </button>
       <div className="experience-progress" aria-hidden="true">
         <span>{String(scrollPercent).padStart(2, "0")}</span><span className="progress-rail"><i style={{ height: `${scrollPercent}%` }} /></span><strong>{chapter}</strong>
