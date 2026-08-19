@@ -575,7 +575,7 @@ export default function Home() {
                   <li><strong>76</strong><span>participants at the first tournament</span></li>
                   <li><strong>3×</strong><span>weekly open-gym sessions by Spring 2026</span></li>
                   <li><strong>3–1</strong><span>scrimmage record against regional schools</span></li>
-                  <li><strong>1st</strong><span>at St. John&apos;s after winning all four games</span></li>
+                  <li><strong>1st</strong><span>after winning the badminton tournament</span></li>
                 </ul>
                 <div className="achievement-footer">
                   <span>Recognized NYIT team beginning Fall 2026</span>
