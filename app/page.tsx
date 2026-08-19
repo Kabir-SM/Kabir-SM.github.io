@@ -613,6 +613,16 @@ export default function Home() {
                 <strong>View PDF</strong>
                 <i aria-hidden="true">📄</i>
               </a>
+              <a href="https://github.com/Kabir-SM" target="_blank" rel="noreferrer" data-cursor="GITHUB">
+                <span>GitHub</span>
+                <strong>Kabir-SM on GitHub</strong>
+                <i aria-hidden="true">💻</i>
+              </a>
+              <a href="https://www.linkedin.com/in/kabir-marwaha-70ba2738b" target="_blank" rel="noreferrer" data-cursor="LINKEDIN">
+                <span>LinkedIn</span>
+                <strong>Kabir Marwaha on LinkedIn</strong>
+                <i aria-hidden="true">💼</i>
+              </a>
             </div>
           </section>
         </main>
