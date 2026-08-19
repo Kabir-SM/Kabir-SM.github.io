@@ -1196,6 +1196,7 @@ summary {
 
 .legal-shell {
   position: relative;
+  z-index: 1;
   isolation: isolate;
   min-height: 100vh;
   overflow: hidden;
@@ -1532,6 +1533,7 @@ summary {
 
 .kinetic-cursor {
   position: fixed;
+  z-index: 71;
   top: 0;
   left: 0;
   width: 2.25rem;
@@ -2708,7 +2710,8 @@ summary {
 
 /* Readable interactive particle field */
 .site-shell {
-  background: #050606;
+  z-index: 1;
+  background: transparent;
 }
 
 .site-shell .ambient,

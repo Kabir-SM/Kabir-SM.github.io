@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import Particles from "./Particles";
 
-type AudioRig = { context: AudioContext; gain: GainNode; sources: AudioScheduledSourceNode[]; stopVisuals: () => void };
+type AudioRig = { context: AudioContext; gain: GainNode; stopMusic: () => void; stopVisuals: () => void };
 
 const PARTICLE_COLORS = ["#f3f3f3"];
 const NOTE = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
@@ -117,119 +118,116 @@ function scheduleNoiseHit(
   source.start(start, 0, duration); source.stop(start + duration + 0.02);
 }
 
-async function createCosmicLofiLoop(sampleRate = 44100) {
-  const bpm = 68;
-  const beat = 60 / bpm;
-  const bars = 16;
+const LOFI_PROGRESSIONS = [
+  { root: 36, chord: [48, 55, 60, 64, 71] }, { root: 43, chord: [50, 55, 59, 62, 67] },
+  { root: 45, chord: [52, 57, 60, 64, 71] }, { root: 41, chord: [48, 53, 57, 60, 64] },
+  { root: 38, chord: [45, 50, 53, 57, 64] }, { root: 45, chord: [48, 52, 57, 60, 64] },
+  { root: 41, chord: [48, 53, 57, 60, 64] }, { root: 43, chord: [50, 55, 60, 62, 67] },
+  { root: 36, chord: [48, 55, 60, 64, 71] }, { root: 40, chord: [47, 52, 55, 59, 64] },
+  { root: 45, chord: [52, 57, 60, 64, 71] }, { root: 41, chord: [48, 53, 57, 60, 67] },
+  { root: 38, chord: [45, 50, 53, 57, 64] }, { root: 41, chord: [48, 53, 57, 60, 69] },
+  { root: 43, chord: [50, 55, 59, 62, 69] }, { root: 36, chord: [48, 55, 60, 64, 71] },
+];
+
+const LOFI_MELODIES: Array<Array<number | null>> = [
+  [null, null, 72, null, null, 76, null, 79], [null, 74, null, 79, null, null, 74, null],
+  [76, null, null, 79, null, 83, null, null], [72, null, 76, null, 79, null, null, 76],
+  [69, null, 72, 76, null, null, 81, null], [72, 76, null, 79, null, 84, null, 81],
+  [76, null, 79, 84, null, 88, 84, null], [79, null, 83, null, 86, 83, 79, null],
+  [84, null, 79, null, 76, null, 79, 83], [83, 79, null, 76, null, 71, 74, null],
+  [76, 79, 84, null, 83, 79, 76, null], [81, null, 84, 88, null, 84, 81, 79],
+  [77, 81, null, 84, 81, 77, 72, null], [81, null, 84, 88, 89, 88, 84, null],
+  [79, 83, 86, null, 91, 86, 83, 79], [84, null, 83, 79, 76, 72, null, 67],
+];
+
+function startCosmicLofiStream(context: AudioContext, destination: AudioNode) {
+  const beat = 60 / 68;
   const barDuration = beat * 4;
-  const duration = bars * barDuration;
-  const offline = new OfflineAudioContext(2, Math.ceil(sampleRate * duration), sampleRate);
   const random = seededRandom(241019);
-  const mix = offline.createGain();
-  const warmth = offline.createBiquadFilter();
-  const dry = offline.createGain();
-  const wet = offline.createGain();
-  const reverb = offline.createConvolver();
-  const compressor = offline.createDynamicsCompressor();
+  const mix = context.createGain();
+  const warmth = context.createBiquadFilter();
+  const dry = context.createGain();
+  const wet = context.createGain();
+  const reverb = context.createConvolver();
+  const musicCompressor = context.createDynamicsCompressor();
 
-  mix.gain.value = 0.78;
+  mix.gain.setValueAtTime(0.0001, context.currentTime);
+  mix.gain.exponentialRampToValueAtTime(0.78, context.currentTime + 0.28);
   warmth.type = "lowpass"; warmth.frequency.value = 7200; warmth.Q.value = 0.28;
-  dry.gain.value = 0.88; wet.gain.value = 0.34;
-  compressor.threshold.value = -19; compressor.knee.value = 26; compressor.ratio.value = 2.6;
-  compressor.attack.value = 0.025; compressor.release.value = 0.72;
+  dry.gain.value = 0.88; wet.gain.value = 0.3;
+  musicCompressor.threshold.value = -19; musicCompressor.knee.value = 26; musicCompressor.ratio.value = 2.6;
+  musicCompressor.attack.value = 0.025; musicCompressor.release.value = 0.72;
 
-  const impulse = offline.createBuffer(2, Math.ceil(offline.sampleRate * 4.2), offline.sampleRate);
+  const impulse = context.createBuffer(2, Math.ceil(context.sampleRate * 2.8), context.sampleRate);
   for (let channel = 0; channel < impulse.numberOfChannels; channel += 1) {
     const data = impulse.getChannelData(channel);
-    for (let i = 0; i < data.length; i += 1) {
-      data[i] = (random() * 2 - 1) * (1 - i / data.length) ** 2.7;
+    for (let index = 0; index < data.length; index += 1) {
+      data[index] = (random() * 2 - 1) * (1 - index / data.length) ** 2.7;
     }
   }
   reverb.buffer = impulse;
   mix.connect(warmth); warmth.connect(dry); warmth.connect(reverb); reverb.connect(wet);
-  dry.connect(compressor); wet.connect(compressor); compressor.connect(offline.destination);
+  dry.connect(musicCompressor); wet.connect(musicCompressor); musicCompressor.connect(destination);
 
-  const progressions = [
-    { root: 36, chord: [48, 55, 60, 64, 71] },
-    { root: 43, chord: [50, 55, 59, 62, 67] },
-    { root: 45, chord: [52, 57, 60, 64, 71] },
-    { root: 41, chord: [48, 53, 57, 60, 64] },
-    { root: 38, chord: [45, 50, 53, 57, 64] },
-    { root: 45, chord: [48, 52, 57, 60, 64] },
-    { root: 41, chord: [48, 53, 57, 60, 64] },
-    { root: 43, chord: [50, 55, 60, 62, 67] },
-    { root: 36, chord: [48, 55, 60, 64, 71] },
-    { root: 40, chord: [47, 52, 55, 59, 64] },
-    { root: 45, chord: [52, 57, 60, 64, 71] },
-    { root: 41, chord: [48, 53, 57, 60, 67] },
-    { root: 38, chord: [45, 50, 53, 57, 64] },
-    { root: 41, chord: [48, 53, 57, 60, 69] },
-    { root: 43, chord: [50, 55, 59, 62, 69] },
-    { root: 36, chord: [48, 55, 60, 64, 71] },
-  ];
-  const melodies: Array<Array<number | null>> = [
-    [null, null, 72, null, null, 76, null, 79], [null, 74, null, 79, null, null, 74, null],
-    [76, null, null, 79, null, 83, null, null], [72, null, 76, null, 79, null, null, 76],
-    [69, null, 72, 76, null, null, 81, null], [72, 76, null, 79, null, 84, null, 81],
-    [76, null, 79, 84, null, 88, 84, null], [79, null, 83, null, 86, 83, 79, null],
-    [84, null, 79, null, 76, null, 79, 83], [83, 79, null, 76, null, 71, 74, null],
-    [76, 79, 84, null, 83, 79, 76, null], [81, null, 84, 88, null, 84, 81, 79],
-    [77, 81, null, 84, 81, 77, 72, null], [81, null, 84, 88, 89, 88, 84, null],
-    [79, 83, 86, null, 91, 86, 83, 79], [84, null, 83, 79, 76, 72, null, 67],
-  ];
-  const noise = createNoiseBuffer(offline, 0.5, random);
-  const vinyl = offline.createBufferSource();
-  const vinylFilter = offline.createBiquadFilter();
-  const vinylGain = offline.createGain();
-  vinyl.buffer = createNoiseBuffer(offline, 2, random); vinyl.loop = true;
+  const noise = createNoiseBuffer(context, 0.5, random);
+  const vinyl = context.createBufferSource();
+  const vinylFilter = context.createBiquadFilter();
+  const vinylGain = context.createGain();
+  vinyl.buffer = createNoiseBuffer(context, 2, random); vinyl.loop = true;
   vinylFilter.type = "bandpass"; vinylFilter.frequency.value = 1600; vinylFilter.Q.value = 0.18;
-  vinylGain.gain.value = 0.006;
+  vinylGain.gain.value = 0.005;
   vinyl.connect(vinylFilter); vinylFilter.connect(vinylGain); vinylGain.connect(mix);
-  vinyl.start(0); vinyl.stop(duration);
+  vinyl.start(context.currentTime);
 
-  progressions.forEach(({ root, chord }, barIndex) => {
-    const barStart = barIndex * barDuration;
-    const rise = 0.72 + barIndex / (bars * 3.2);
-    chord.forEach((midi, noteIndex) => {
-      const strum = noteIndex * 0.032;
-      schedulePad(offline, mix, NOTE(midi), barStart + strum, barDuration * 1.08, 0.027 * rise, (noteIndex - 2) * 0.19);
-      if (barIndex >= 8 && noteIndex > 1) {
-        schedulePad(offline, mix, NOTE(midi) * 2, barStart + strum + 0.08, barDuration, 0.0075 * rise, (2 - noteIndex) * 0.22);
+  let stopped = false;
+  let barIndex = 0;
+  let nextBarStart = context.currentTime + 0.04;
+  const scheduleBars = () => {
+    while (!stopped && nextBarStart < context.currentTime + 1.2) {
+      const phraseIndex = barIndex % LOFI_PROGRESSIONS.length;
+      const { root, chord } = LOFI_PROGRESSIONS[phraseIndex];
+      const melody = LOFI_MELODIES[phraseIndex];
+      const rise = 0.72 + phraseIndex / (LOFI_PROGRESSIONS.length * 3.2);
+      const barStart = nextBarStart;
+
+      chord.forEach((midi, noteIndex) => {
+        const strum = noteIndex * 0.032;
+        schedulePad(context, mix, NOTE(midi), barStart + strum, barDuration * 1.08, 0.027 * rise, (noteIndex - 2) * 0.19);
+        if (phraseIndex >= 8 && noteIndex > 1) {
+          schedulePad(context, mix, NOTE(midi) * 2, barStart + strum + 0.08, barDuration, 0.0075 * rise, (2 - noteIndex) * 0.22);
+        }
+      });
+      schedulePad(context, mix, NOTE(root), barStart, barDuration * 1.06, 0.075 * rise, -0.05);
+      for (let step = 0; step < 8; step += 1) {
+        const arp = chord[[0, 2, 1, 3, 2, 4, 3, 1][step]] + 12;
+        scheduleTone(context, mix, NOTE(arp), barStart + step * beat * 0.5, beat * 0.42, 0.019 * rise, "triangle", step % 2 === 0 ? -0.28 : 0.28);
       }
-    });
-    schedulePad(offline, mix, NOTE(root), barStart, barDuration * 1.06, 0.075 * rise, -0.05);
-    for (let step = 0; step < 8; step += 1) {
-      const arp = chord[[0, 2, 1, 3, 2, 4, 3, 1][step]] + 12;
-      scheduleTone(offline, mix, NOTE(arp), barStart + step * beat * 0.5, beat * 0.42, 0.019 * rise, "triangle", step % 2 === 0 ? -0.28 : 0.28);
-    }
-    [0, 2].forEach((offset) => {
-      scheduleTone(offline, mix, NOTE(root + 12), barStart + offset * beat, beat * 1.45, 0.052 * rise, "sine", -0.06);
-    });
-    melodies[barIndex].forEach((midi, step) => {
-      if (midi === null) return;
-      const start = barStart + step * beat * 0.5;
-      const emphasis = step === 0 || step === 4 ? 1 : 0.82;
-      scheduleTone(offline, mix, NOTE(midi), start, beat * 0.82, 0.029 * emphasis * rise, "sine", step % 2 === 0 ? -0.24 : 0.24);
-      scheduleTone(offline, mix, NOTE(midi) * 2, start + 0.018, beat * 0.55, 0.0065 * emphasis, "triangle", step % 2 === 0 ? 0.32 : -0.32);
-    });
-    scheduleKick(offline, mix, barStart, 0.22 * rise);
-    if (barIndex >= 4) scheduleKick(offline, mix, barStart + 2 * beat, 0.13 * rise);
-    scheduleNoiseHit(offline, mix, noise, barStart + 0.04, beat * 0.78, 1150, 0.028 * rise);
-    [1.5, 3.5].forEach((offset) => scheduleNoiseHit(offline, mix, noise, barStart + offset * beat, 0.11, 6800, 0.014 * rise));
-  });
+      [0, 2].forEach((offset) => scheduleTone(context, mix, NOTE(root + 12), barStart + offset * beat, beat * 1.45, 0.052 * rise, "sine", -0.06));
+      melody.forEach((midi, step) => {
+        if (midi === null) return;
+        const start = barStart + step * beat * 0.5;
+        const emphasis = step === 0 || step === 4 ? 1 : 0.82;
+        scheduleTone(context, mix, NOTE(midi), start, beat * 0.82, 0.029 * emphasis * rise, "sine", step % 2 === 0 ? -0.24 : 0.24);
+        scheduleTone(context, mix, NOTE(midi) * 2, start + 0.018, beat * 0.55, 0.0065 * emphasis, "triangle", step % 2 === 0 ? 0.32 : -0.32);
+      });
+      scheduleKick(context, mix, barStart, 0.22 * rise);
+      if (phraseIndex >= 4) scheduleKick(context, mix, barStart + 2 * beat, 0.13 * rise);
+      scheduleNoiseHit(context, mix, noise, barStart + 0.04, beat * 0.78, 1150, 0.028 * rise);
+      [1.5, 3.5].forEach((offset) => scheduleNoiseHit(context, mix, noise, barStart + offset * beat, 0.11, 6800, 0.014 * rise));
 
-  const rendered = await offline.startRendering();
-  let peak = 0.0001;
-  for (let channel = 0; channel < rendered.numberOfChannels; channel += 1) {
-    const data = rendered.getChannelData(channel);
-    for (let i = 0; i < data.length; i += 1) peak = Math.max(peak, Math.abs(data[i]));
-  }
-  const scale = Math.min(1.6, 0.82 / peak);
-  for (let channel = 0; channel < rendered.numberOfChannels; channel += 1) {
-    const data = rendered.getChannelData(channel);
-    for (let i = 0; i < data.length; i += 1) data[i] *= scale;
-  }
-  return rendered;
+      nextBarStart += barDuration;
+      barIndex += 1;
+    }
+  };
+
+  scheduleBars();
+  const scheduler = window.setInterval(scheduleBars, 220);
+  return () => {
+    if (stopped) return;
+    stopped = true;
+    window.clearInterval(scheduler);
+    try { vinyl.stop(); } catch { /* already stopped */ }
+  };
 }
 
 function playInterfaceSound(context: AudioContext, destination: AudioNode, interactive: boolean) {
@@ -261,36 +259,12 @@ function startAudioVisuals(analyser: AnalyserNode) {
   };
 }
 
-function startImmediateCosmicSwell(context: AudioContext, destination: AudioNode) {
-  const bus = context.createGain();
-  const filter = context.createBiquadFilter();
-  const now = context.currentTime;
-  bus.gain.setValueAtTime(0.0001, now);
-  bus.gain.exponentialRampToValueAtTime(0.58, now + 0.12);
-  filter.type = "lowpass"; filter.frequency.value = 2400; filter.Q.value = 0.35;
-  bus.connect(filter); filter.connect(destination);
-  const sources = [36, 48, 55, 60, 64].map((midi, index) => {
-    const oscillator = context.createOscillator();
-    const voice = context.createGain();
-    const panner = context.createStereoPanner();
-    oscillator.type = index < 2 ? "sine" : "triangle";
-    oscillator.frequency.value = NOTE(midi);
-    oscillator.detune.value = (index - 2) * 2.7;
-    voice.gain.value = index < 2 ? 0.07 : 0.022;
-    panner.pan.value = (index - 2) * 0.18;
-    oscillator.connect(voice); voice.connect(panner); panner.connect(bus);
-    oscillator.start(now);
-    return oscillator;
-  });
-  return { bus, sources };
-}
-
 export function KineticExperience() {
+  const pathname = usePathname();
+  const isHome = pathname === "/";
   const cursorRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<AudioRig | null>(null);
-  const soundtrackRef = useRef<Promise<AudioBuffer | null> | null>(null);
-  const soundtrackBufferRef = useRef<AudioBuffer | null>(null);
-  const audioGenerationRef = useRef(0);
+  const audioStartingRef = useRef(false);
   const [soundState, setSoundState] = useState<"armed" | "off" | "on">("armed");
   const [scrollPercent, setScrollPercent] = useState(0);
   const [chapter, setChapter] = useState("ORIGIN");
@@ -352,22 +326,15 @@ export function KineticExperience() {
       document.documentElement.style.removeProperty("--pointer-y");
       document.documentElement.style.removeProperty("--scroll-progress");
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
-    const prepareSoundtrack = () => {
-      if (soundtrackRef.current) return;
-      soundtrackRef.current = createCosmicLofiLoop(44100)
-        .then((buffer) => { soundtrackBufferRef.current = buffer; return buffer; })
-        .catch(() => null);
-    };
-    const prepareTimer = window.setTimeout(prepareSoundtrack, 250);
     return () => {
-      window.clearTimeout(prepareTimer);
-      audioGenerationRef.current += 1;
       if (audioRef.current) {
+        audioRef.current.stopMusic();
         audioRef.current.stopVisuals();
         void audioRef.current.context.close();
+        audioRef.current = null;
       }
     };
   }, []);
@@ -403,18 +370,20 @@ export function KineticExperience() {
 
   const toggleSound = useCallback(async () => {
     if (audioRef.current) {
-      audioGenerationRef.current += 1;
       const rig = audioRef.current; const now = rig.context.currentTime;
+      rig.stopMusic();
       rig.stopVisuals();
       rig.gain.gain.cancelScheduledValues(now); rig.gain.gain.setValueAtTime(rig.gain.gain.value, now);
-      rig.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
-      rig.sources.forEach((source) => { try { source.stop(now + 0.85); } catch { /* already stopped */ } });
-      audioRef.current = null; setSoundState("off"); window.setTimeout(() => void rig.context.close(), 900); return;
+      rig.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+      audioRef.current = null;
+      setSoundState("off");
+      window.setTimeout(() => void rig.context.close(), 500);
+      return;
     }
+    if (audioStartingRef.current) return;
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
-    const generation = audioGenerationRef.current + 1;
-    audioGenerationRef.current = generation;
+    audioStartingRef.current = true;
     const context: AudioContext = new AudioContextClass();
     try {
       await context.resume();
@@ -424,43 +393,33 @@ export function KineticExperience() {
         return;
       }
       const master = context.createGain();
-      const trackGain = context.createGain();
       const analyser = context.createAnalyser();
       const compressor = context.createDynamicsCompressor();
-      master.gain.value = 0.84;
-      trackGain.gain.value = 0.0001;
+      master.gain.value = 0.8;
       compressor.threshold.value = -13; compressor.knee.value = 20; compressor.ratio.value = 3.2;
       compressor.attack.value = 0.015; compressor.release.value = 0.5;
       analyser.fftSize = 256; analyser.smoothingTimeConstant = 0.86;
-      trackGain.connect(master); master.connect(analyser); analyser.connect(compressor); compressor.connect(context.destination);
-      const intro = startImmediateCosmicSwell(context, master);
-      const rig: AudioRig = { context, gain: master, sources: [...intro.sources], stopVisuals: startAudioVisuals(analyser) };
+      master.connect(analyser); analyser.connect(compressor); compressor.connect(context.destination);
+      const rig: AudioRig = {
+        context,
+        gain: master,
+        stopMusic: startCosmicLofiStream(context, master),
+        stopVisuals: startAudioVisuals(analyser),
+      };
       audioRef.current = rig;
       setSoundState("on");
       playInterfaceSound(context, master, true);
-
-      const soundtrackPromise = soundtrackRef.current ?? createCosmicLofiLoop(context.sampleRate);
-      soundtrackRef.current = soundtrackPromise;
-      const soundtrack = soundtrackBufferRef.current ?? await soundtrackPromise;
-      if (!soundtrack || audioRef.current !== rig || audioGenerationRef.current !== generation) return;
-      const lofiSource = context.createBufferSource();
-      lofiSource.buffer = soundtrack; lofiSource.loop = true; lofiSource.connect(trackGain);
-      const now = context.currentTime;
-      trackGain.gain.cancelScheduledValues(now);
-      trackGain.gain.setValueAtTime(0.18, now);
-      trackGain.gain.exponentialRampToValueAtTime(0.96, now + 1.2);
-      intro.bus.gain.cancelScheduledValues(now);
-      intro.bus.gain.setValueAtTime(intro.bus.gain.value, now);
-      intro.bus.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
-      lofiSource.start(now);
-      rig.sources.push(lofiSource);
-      intro.sources.forEach((source) => { try { source.stop(now + 1.3); } catch { /* already stopped */ } });
     } catch {
-      if (audioRef.current?.context === context) audioRef.current.stopVisuals();
-      await context.close();
+      if (audioRef.current?.context === context) {
+        audioRef.current.stopMusic();
+        audioRef.current.stopVisuals();
+      }
+      if (context.state !== "closed") await context.close();
       document.documentElement.style.setProperty("--audio-level", "0");
       audioRef.current = null;
       setSoundState("off");
+    } finally {
+      audioStartingRef.current = false;
     }
   }, []);
 
@@ -505,10 +464,14 @@ export function KineticExperience() {
       <button className={`sound-toggle ${soundOn ? "is-on" : ""}`} type="button" aria-label={soundState === "armed" ? "Start ambient soundtrack" : soundOn ? "Turn ambient soundtrack off" : "Turn ambient soundtrack on"} aria-pressed={soundOn} onClick={() => void toggleSound()} title="Ambient soundtrack and interface sounds">
         <span className="sound-bars" aria-hidden="true"><i /><i /><i /><i /></span><span>SOUND: {soundLabel}</span>
       </button>
-      <div className="experience-progress" aria-hidden="true">
-        <span>{String(scrollPercent).padStart(2, "0")}</span><span className="progress-rail"><i style={{ height: `${scrollPercent}%` }} /></span><strong>{chapter}</strong>
-      </div>
-      <div className="interaction-guide" aria-hidden="true">MOVE / SCROLL TO EXPLORE</div>
+      {isHome ? (
+        <>
+          <div className="experience-progress" aria-hidden="true">
+            <span>{String(scrollPercent).padStart(2, "0")}</span><span className="progress-rail"><i style={{ height: `${scrollPercent}%` }} /></span><strong>{chapter}</strong>
+          </div>
+          <div className="interaction-guide" aria-hidden="true">MOVE / SCROLL TO EXPLORE</div>
+        </>
+      ) : null}
     </div>
   );
 }

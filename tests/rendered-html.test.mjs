@@ -71,8 +71,9 @@ test("attaches restrictive browser security headers", async () => {
 });
 
 test("ships the required portfolio assets and avoids unsafe HTML injection", async () => {
-  const [page, contact, portrait, resume] = await Promise.all([
+  const [page, layout, contact, portrait, resume] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/ContactModal.tsx", import.meta.url), "utf8"),
     access(new URL("public/kabir-marwaha-portrait.png", projectRoot)),
     access(new URL("public/Kabir_Marwaha_Resume_2026.pdf", projectRoot)),
@@ -82,6 +83,8 @@ test("ships the required portfolio assets and avoids unsafe HTML injection", asy
   assert.doesNotMatch(contact, /dangerouslySetInnerHTML|\binnerHTML\b|\beval\s*\(/);
   assert.match(contact, /maxLength=\{2000\}/);
   assert.match(page, /rel="noreferrer"/);
+  assert.doesNotMatch(page, /<KineticExperience/);
+  assert.match(layout, /<KineticExperience/);
   assert.equal(portrait, undefined);
   assert.equal(resume, undefined);
 });

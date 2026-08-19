@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { KineticExperience } from "./KineticExperience";
 import ParticleText from "./ParticleText";
 import { ContactModal, ContactTrigger } from "./ContactModal";
 import { PortfolioInteractions } from "./PortfolioInteractions";
@@ -216,7 +215,6 @@ export default function Home() {
       </a>
 
       <div className="site-shell">
-        <KineticExperience />
         <div className="ambient ambient-one" aria-hidden="true" />
         <div className="ambient ambient-two" aria-hidden="true" />
         <div className="signal-grid" aria-hidden="true" />
