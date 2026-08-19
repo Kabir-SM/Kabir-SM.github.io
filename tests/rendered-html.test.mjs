@@ -81,10 +81,11 @@ test("attaches restrictive browser security headers", async () => {
 });
 
 test("ships the required portfolio assets and avoids unsafe HTML injection", async () => {
-  const [page, layout, contact, portrait, resume] = await Promise.all([
+  const [page, layout, contact, kinetic, portrait, resume] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/ContactModal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/KineticExperience.tsx", import.meta.url), "utf8"),
     access(new URL("public/kabir-marwaha-portrait.png", projectRoot)),
     access(new URL("public/Kabir_Marwaha_Resume_2026.pdf", projectRoot)),
   ]);
@@ -95,6 +96,9 @@ test("ships the required portfolio assets and avoids unsafe HTML injection", asy
   assert.match(page, /rel="noreferrer"/);
   assert.doesNotMatch(page, /<KineticExperience/);
   assert.match(layout, /<KineticExperience/);
+  assert.doesNotMatch(kinetic, /addEventListener\("pointerdown", onPointerDown/);
+  assert.match(kinetic, /addEventListener\("click", onClick/);
+  assert.match(kinetic, /if \(!interactive\) return/);
   assert.equal(portrait, undefined);
   assert.equal(resume, undefined);
 });

@@ -357,20 +357,20 @@ export function KineticExperience() {
   }, []);
 
   useEffect(() => {
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.button !== 0) return;
+    const onClick = (event: MouseEvent) => {
       const rig = audioRef.current;
       if (!rig) return;
       const target = event.target instanceof Element ? event.target : null;
       const interactive = Boolean(target?.closest("a, button, input, select, textarea, summary, [role='button']"));
+      if (!interactive) return;
       if (rig.context.state === "suspended") {
-        void rig.context.resume().then(() => playInterfaceSound(rig.context, rig.gain, interactive)).catch(() => undefined);
+        void rig.context.resume().then(() => playInterfaceSound(rig.context, rig.gain, true)).catch(() => undefined);
       } else {
-        playInterfaceSound(rig.context, rig.gain, interactive);
+        playInterfaceSound(rig.context, rig.gain, true);
       }
     };
-    document.addEventListener("pointerdown", onPointerDown, { passive: true });
-    return () => document.removeEventListener("pointerdown", onPointerDown);
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
   }, []);
 
   useEffect(() => {
