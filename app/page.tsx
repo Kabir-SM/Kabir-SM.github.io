@@ -559,15 +559,56 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="leadership-card">
-              <div>
-                <p className="eyebrow">Beyond the screen</p>
-                <h3>Founder & President, NYIT Badminton Club</h3>
-              </div>
-              <p>
-                Founded and lead a student organization, coordinating logistics, budgets,
-                scheduling, procurement, and campus partnerships since September 2024.
-              </p>
+            <div className="achievement-grid">
+              <article className="achievement-card achievement-card-featured">
+                <div className="achievement-topline">
+                  <p className="eyebrow">Campus leadership / September 2024 - Present</p>
+                  <span>01</span>
+                </div>
+                <h3>Built NYIT Badminton from one tournament into a recognized team.</h3>
+                <p className="achievement-copy">
+                  As founder and president, I turned sustained student interest into a growing
+                  campus program—organizing events, coordinating with Campus Recreation, building
+                  the club&apos;s identity, and helping lead competition across Long Island.
+                </p>
+                <ul className="achievement-metrics" aria-label="NYIT Badminton achievements">
+                  <li><strong>76</strong><span>participants at the first tournament</span></li>
+                  <li><strong>3×</strong><span>weekly open-gym sessions by Spring 2026</span></li>
+                  <li><strong>3–1</strong><span>scrimmage record against regional schools</span></li>
+                  <li><strong>1st</strong><span>at St. John&apos;s after winning all four games</span></li>
+                </ul>
+                <div className="achievement-footer">
+                  <span>Recognized NYIT team beginning Fall 2026</span>
+                  <a
+                    href="https://files.nyit.edu/files/events/2026-CampusSlate-ManhattanGlobe-Commencement-Edition.pdf#page=21"
+                    target="_blank"
+                    rel="noreferrer"
+                    data-cursor="READ FEATURE"
+                  >
+                    Read the Campus Slate feature <span aria-hidden="true">↗</span>
+                  </a>
+                </div>
+              </article>
+
+              <article className="achievement-card achievement-card-techlit">
+                <div className="achievement-topline">
+                  <p className="eyebrow">Community technology / April 2024</p>
+                  <span>02</span>
+                </div>
+                <h3>Constructed five PCs for TechLit Africa.</h3>
+                <p className="achievement-copy">
+                  Built five personal computers from scratch for donation to people in need,
+                  combining hands-on hardware assembly with careful wiring and thermal planning.
+                </p>
+                <ul className="achievement-details">
+                  <li>Installed motherboards, CPUs, GPUs, RAM, power supplies, and cooling fans.</li>
+                  <li>Routed internal power wiring and planned fan placement for effective airflow.</li>
+                </ul>
+                <div className="achievement-footer">
+                  <span>Role / Constructor</span>
+                  <span>Hardware with a human purpose</span>
+                </div>
+              </article>
             </div>
           </section>
 

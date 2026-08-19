@@ -42,6 +42,11 @@ test("server-renders the finished portfolio", async () => {
   assert.match(html, /href="https:\/\/github\.com\/Kabir-SM"/i);
   assert.match(html, /href="https:\/\/www\.linkedin\.com\/in\/kabir-marwaha-70ba2738b"/i);
   assert.match(html, /Computer Science \+ AI \/ Open to opportunities/i);
+  assert.match(html, /Built NYIT Badminton from one tournament into a recognized team/i);
+  assert.match(html, /76<\/strong><span>participants at the first tournament/i);
+  assert.match(html, /after winning all four games/i);
+  assert.match(html, /Constructed five PCs for TechLit Africa/i);
+  assert.match(html, /CampusSlate-ManhattanGlobe-Commencement-Edition\.pdf#page=21/i);
   assert.match(html, /SOUND:\s*(?:<!-- -->)?START/i);
   assert.match(html, /aria-label="Start ambient soundtrack"/i);
   assert.match(html, /aria-label="Jump to a portfolio section"/i);
